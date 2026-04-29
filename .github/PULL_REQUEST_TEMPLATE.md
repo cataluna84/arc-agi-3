@@ -20,7 +20,7 @@ Before submitting:
 
 <!-- Bullet list of the concrete changes. Skip files that only got reformatted. -->
 
-- 
+-
 
 ## Type of change
 

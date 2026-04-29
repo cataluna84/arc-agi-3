@@ -35,9 +35,11 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^(documentation/|research/|data/|environment_files/)
+        # agents/_ash_my_agent_v19.py is a verbatim vendored upstream copy
+        # (see AGENTS.md "Code conventions"); pre-commit must not rewrite it.
+        exclude: ^(documentation/|research/|data/|environment_files/|agents/_ash_my_agent_v19\.py$)
       - id: end-of-file-fixer
-        exclude: ^(documentation/|research/|data/|environment_files/|.*\.ipynb$)
+        exclude: ^(documentation/|research/|data/|environment_files/|agents/_ash_my_agent_v19\.py$|.*\.ipynb$)
       - id: mixed-line-ending
         args: ["--fix=lf"]
       - id: check-merge-conflict
