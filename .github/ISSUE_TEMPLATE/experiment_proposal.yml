@@ -1,0 +1,81 @@
+name: Experiment proposal
+description: Propose a new agent / experiment / Kaggle submission strategy.
+title: "[exp] "
+labels: ["experiment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for new experimental directions: a new agent
+        architecture, a new prompting strategy, a new search algorithm,
+        an offline pretraining idea, etc. The goal is to lock in
+        a clear hypothesis + Definition-of-Done BEFORE any code is written.
+
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis (one sentence)
+      description: What do you expect to be true after running this experiment?
+      placeholder: A vision-language model fine-tuned with Test-Time Training on each game's first 100 transitions will solve more levels than zero-shot Qwen3.6-35B-A3B.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why this experiment now? Reference any relevant `.factory/memories.md` section, paper, or LB result.
+    validations:
+      required: true
+
+  - type: textarea
+    id: design
+    attributes:
+      label: Design / approach
+      description: Sketch the algorithm and what files will change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definition of Done
+      description: What concrete thresholds must be met to call this experiment a success / failure?
+      placeholder: |
+        - Local smoke completes >=1 level on ls20 within 200 actions.
+        - Per-action latency on Kaggle H100 < 5 s.
+        - Kaggle LB score >= 0.25 (delta >= +0.06 over 0.19 baseline).
+    validations:
+      required: true
+
+  - type: textarea
+    id: budget
+    attributes:
+      label: Resource budget
+      description: How many Kaggle daily slots? How long is the dev cycle?
+      placeholder: 1 daily slot tomorrow + 2 days of dev kernel iteration.
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Approach taxonomy (`.factory/rules/approach-taxonomy.md`)
+      options:
+        - A - FORGE / Trigger-Aware BFS
+        - B - Goose / Stochastic CNN
+        - C - Just-Explore / state-graph
+        - D - Redpill / per-game perception
+        - E - MCTS / planning
+        - F - DSL / program synthesis
+        - G - LLM agent (this is what exp004 is)
+        - H - Hybrid / ensemble
+        - other / not sure
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I read `.factory/plan.md` and confirmed this either fits an existing slot or replaces one.
+          required: true
+        - label: I will smoke-test locally before burning a Kaggle daily slot.
+          required: true

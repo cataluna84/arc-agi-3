@@ -1,0 +1,69 @@
+# Pre-commit hooks. Install once with: `uv run pre-commit install`.
+# Run on the full tree with:        `uv run pre-commit run --all-files`.
+#
+# Why these hooks:
+#   - ruff (lint + format) is the single source of truth for Python style.
+#   - hygiene hooks below catch the most common accidental commits
+#     (huge files, secrets, broken JSON/YAML, merge markers, mixed line endings).
+#
+# All hooks are pinned by SHA + version so a clean clone is reproducible.
+
+minimum_pre_commit_version: "4.0.0"
+
+default_language_version:
+  python: python3.12
+
+default_stages: [pre-commit, pre-push]
+
+repos:
+  # ---------------------------------------------------------------------------
+  # Ruff: lint (with autofix) + format. Replaces flake8 / black / isort / pyupgrade.
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
+    hooks:
+      - id: ruff
+        name: "ruff lint"
+        args: ["--fix"]
+      - id: ruff-format
+        name: "ruff format"
+
+  # ---------------------------------------------------------------------------
+  # Generic hygiene + secret-leak guards (pre-commit/pre-commit-hooks)
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(documentation/|research/|data/|environment_files/)
+      - id: end-of-file-fixer
+        exclude: ^(documentation/|research/|data/|environment_files/|.*\.ipynb$)
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]   # block accidental commits of files > 2 MiB
+      - id: check-yaml
+        exclude: ^(\.factory/.*|documentation/.*)
+      - id: check-toml
+      - id: check-json
+        exclude: ^.*\.ipynb$    # ipynb is JSON but with control chars some hooks don't like
+      - id: detect-private-key
+      - id: forbid-submodules
+
+  # ---------------------------------------------------------------------------
+  # actionlint: validate GitHub Actions workflow YAML
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.7
+    hooks:
+      - id: actionlint
+        files: ^\.github/workflows/.*\.ya?ml$
+
+  # ---------------------------------------------------------------------------
+  # gitleaks: scan staged content for accidentally-committed secrets / API keys
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks

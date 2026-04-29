@@ -1,0 +1,90 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in as much detail as you can.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug.
+      placeholder: When I run X, I expected Y but got Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal reproducer; ideally a one-liner the maintainer can paste.
+      render: shell
+      placeholder: |
+        uv run python experiments/local_runner.py \
+            --agent agents.qwen_agent:QwenAgent --games ls20-mock --max-actions 50
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect to happen?
+    validations:
+      required: false
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour / output
+      description: Paste the actual output, traceback, or screenshot.
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: Output of `python --version`.
+      placeholder: "3.12.13"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS / platform
+      placeholder: "Ubuntu 22.04, WSL2 on Windows 11, macOS 14.5, ..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did this happen?
+      options:
+        - Local dev (offline runner, agent code)
+        - Local dev (Kaggle CLI helper script)
+        - Kaggle dev kernel (push / status / output)
+        - Kaggle competition rerun
+        - CI / pre-commit hooks
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: I read the relevant section of `CONTRIBUTING.md` and `.factory/rules/gotchas.md`.
+          required: true
+        - label: I am NOT sharing any Kaggle API key, GitHub token, or HuggingFace token in this issue.
+          required: true

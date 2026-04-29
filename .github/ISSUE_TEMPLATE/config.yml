@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ARC Prize 2026 - ARC-AGI-3 Kaggle Competition
+    url: https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3
+    about: Official competition page (rules, leaderboard, datasets).
+  - name: Project memory and roadmap
+    url: https://github.com/cataluna84/arc-agi-3/tree/main/.factory
+    about: Read .factory/plan.md and .factory/memories.md before opening a feature request.
