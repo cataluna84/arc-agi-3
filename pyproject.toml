@@ -1,0 +1,178 @@
+[project]
+name = "arc-agi-3-workspace"
+version = "0.1.0"
+description = "Local development workspace for the ARC Prize 2026 - ARC-AGI-3 Kaggle Code Competition."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Mayank Bhaskar", email = "mayankbhaskar007@gmail.com" }]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+keywords = ["arc-agi", "arc-prize-2026", "kaggle", "reasoning", "agents", "llm", "moe"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Only the bare minimum needed to RUN scripts/download_kaggle_data.py.
+# Everything else (arc-agi SDK + numeric/visualization libs) ships as wheels
+# inside the Kaggle competition data; install them via
+# scripts/install_arc_agi_sdk.py after the download completes.
+dependencies = [
+    # KGAT_ API token format requires kaggle CLI >= 1.8.0 and kagglehub >= 0.4.1.
+    "kaggle>=1.8.0",
+    "kagglehub>=0.4.1",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/cataluna84/arc-agi-3"
+Repository = "https://github.com/cataluna84/arc-agi-3"
+Issues = "https://github.com/cataluna84/arc-agi-3/issues"
+Changelog = "https://github.com/cataluna84/arc-agi-3/blob/main/CHANGELOG.md"
+"Kaggle Competition" = "https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.0",
+    "pre-commit>=4.0.0",
+    "pytest>=8.3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["agents", "scripts"]
+
+[tool.uv]
+package = false
+
+# ---------------------------------------------------------------------------
+# Ruff: linter + formatter + import-sorter (replaces flake8/black/isort/etc.)
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+    "agents/_ash_my_agent_v19.py",   # verbatim-vendored upstream Ash notebook; do not edit
+    "data",                          # downloaded Kaggle wheels + agents harness
+    "runs",                          # local smoke-run JSON outputs
+    "documentation",                 # MHTML mirrors of comp pages
+    "research",                      # exa research reports + ash notebook capture
+    "environment_files",             # arc-agi-3 game source files (downloaded)
+    "*.ipynb",                       # notebooks excluded from ruff (we don't lint cells)
+]
+
+[tool.ruff.lint]
+# A pragmatic, broad ruleset:
+#   E,W = pycodestyle, F = pyflakes, I = isort, B = bugbear,
+#   C4 = comprehensions, UP = pyupgrade, RUF = ruff-specific,
+#   SIM = simplify, TID = tidy-imports, PTH = pathlib,
+#   PERF = performance, A = avoid shadowing builtins,
+#   ARG = unused arguments, S = bandit (security),
+#   N = naming, RET = return, TCH = type-checking,
+#   ICN = import conventions, ISC = string concat, T20 = no-print
+select = [
+    "E", "W", "F", "I", "B", "C4", "UP", "RUF", "SIM",
+    "TID", "PTH", "PERF", "A", "ARG", "S", "N", "RET",
+    "TCH", "ICN", "ISC",
+]
+ignore = [
+    # Project-specific intentional choices:
+    "S101",     # assert is fine in tests + smoke scripts
+    "S603",     # subprocess.run on trusted input - we pass static argv
+    "S607",     # partial executable paths - we use 'kaggle', 'pip' by name
+    "S311",     # `random` - fine for agent randomness, NOT crypto
+    "PERF203",  # try/except in loops - sometimes intentional
+    "RET504",   # unnecessary assignment before return - readability
+    "SIM108",   # ternary vs if/else - readability over conciseness
+    "B008",     # function call in default arg - sometimes useful (e.g. Counter())
+    "ISC001",   # conflicts with formatter; ruff format handles it
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = [
+    "T201",     # print() is the whole point of CLI scripts
+    "S404",     # subprocess use is fine
+    "PTH100", "PTH120", "PTH123",   # bootstrap path manipulation, fine
+    "SIM115",   # transient open()s in scripts
+    "PERF401",  # manual loops sometimes clearer than comprehensions
+    "ARG",      # smoke-test inner classes use unused args by design
+    "B007",     # loop var in finally
+    "F841",     # local var for debugging
+    "RUF059",   # unused unpacks for return-value docs
+    "RET504",   # explicit return values for clarity
+    "N805",     # smoke tests use self_ in nested mocks to avoid scope shadowing
+    "E501",     # long doc URLs / table lines OK in scripts
+]
+"experiments/local_runner.py" = [
+    "T201",
+    "PTH100", "PTH103", "PTH120", "PTH123",  # path manipulation, fine
+    "S108",                                   # /tmp paths legitimate on Kaggle
+    "S110",                                   # silent fallback for subprocess parse
+    "N803", "N806",                           # AgentCls is camel-case import alias
+    "SIM115",
+    "C401",
+]
+"experiments/**/*.py" = ["T201", "ARG001", "ARG002"]
+# Local stub of upstream agents.agent.Agent - must mirror upstream API exactly
+"agents/agent.py" = ["N803", "ARG002"]
+# Adapter to verbatim Ash port - mirrors upstream conventions
+"agents/ash_agent.py" = [
+    "PTH100", "PTH103", "PTH110", "PTH120", "PTH123", "PTH207",  # upstream uses os.path
+    "S108",     # /kaggle/input + /tmp paths are upstream convention
+    "SIM115",   # one-off file reads
+    "B904",     # error-chaining mirrors upstream
+    "S110",     # bare except: pass mirrors upstream
+]
+"agents/qwen_agent.py" = [
+    "S108",     # /tmp/qwen_trace.log is intentional
+    "PTH123",   # open() in trace logger
+    "PERF401",
+    "B904",
+    "N806",     # H, W are conventional grid-dim names
+    "E501",     # long doc lines OK in module docstring
+    "ARG001",   # rng_seed kept in parse_action signature for forward-compat
+]
+# Tests can use assert and skip docstrings
+"**/test_*.py" = ["S101", "ARG", "D"]
+"**/conftest.py" = ["S101", "ARG", "D"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agents", "scripts", "experiments"]
+combine-as-imports = true
+force-sort-within-sections = false
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[tool.ruff.lint.flake8-type-checking]
+strict = false
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+docstring-code-line-length = 90
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+testpaths = ["tests", "scripts"]
+python_files = ["test_*.py", "*_smoke_local.py"]
+python_classes = ["Test*", "_Suite"]
+python_functions = ["test_*", "suite_*"]
+filterwarnings = [
+    "ignore::DeprecationWarning:pkg_resources.*",
+]

@@ -1,0 +1,56 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.key
+kaggle.json
+.factory/secrets/
+
+# Downloaded data (large; download via scripts/download_kaggle_data.py)
+data/
+
+# arc-agi SDK auto-fetched game files at the repo root
+# (the canonical location is data/kaggle/.../environment_files/, which is
+#  also covered by the data/ rule above; this rule covers a stray copy
+#  the SDK creates next to whichever working directory it's invoked from).
+environment_files/
+
+# Local smoke-run outputs
+runs/
+
+# Compiled wheels (kaggle bundles ship as .whl in data/)
+*.whl
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
