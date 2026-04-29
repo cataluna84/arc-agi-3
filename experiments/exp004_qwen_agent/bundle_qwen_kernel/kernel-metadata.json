@@ -1,0 +1,15 @@
+{
+  "id": "cataluna84/qwen-bundle-arc-agi-3",
+  "title": "Qwen Bundle ARC-AGI-3",
+  "code_file": "bundle_qwen.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "model_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}

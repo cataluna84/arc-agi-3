@@ -1,0 +1,15 @@
+{
+  "id": "cataluna84/qwen-bridge-probe",
+  "title": "Qwen Bridge Probe ARC-AGI-3",
+  "code_file": "qwen_bridge_probe.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "model_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}
