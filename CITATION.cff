@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+title: "arc-agi-3: a Kaggle ARC Prize 2026 lab notebook"
+message: "If you use this work, please cite it as below."
+type: software
+authors:
+  - given-names: Mayank
+    family-names: Bhaskar
+    alias: cataluna84
+    email: mayankbhaskar007@gmail.com
+abstract: >-
+  arc-agi-3 is a public lab notebook for the ARC Prize 2026 - ARC-AGI-3
+  Kaggle Code Competition. It contains agent implementations (random,
+  greedy-explore, an Ash FORGE-v19 port, and a Qwen3.6-35B-A3B
+  vision-language agent), an offline smoke runner, Kaggle CLI
+  automation, and a daily research log capturing the project's
+  decisions, experiments, and leaderboard results.
+keywords:
+  - arc-agi-3
+  - arc-prize-2026
+  - kaggle
+  - reasoning
+  - agents
+  - large-language-models
+  - mixture-of-experts
+  - vision-language-models
+license: Apache-2.0
+repository-code: "https://github.com/cataluna84/arc-agi-3"
+url: "https://github.com/cataluna84/arc-agi-3"
+version: "0.1.0"
+date-released: "2026-04-29"
+references:
+  - type: misc
+    title: "ARC Prize 2026 - ARC-AGI-3"
+    url: "https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3"
+    notes: "The Kaggle competition this repository targets."
+  - type: software
+    title: "Qwen3.6-35B-A3B"
+    authors:
+      - name: "Tongyi Qianwen Team, Alibaba Cloud"
+    url: "https://huggingface.co/Qwen/Qwen3.6-35B-A3B"
+    license: Apache-2.0
+    notes: "Vision-language MoE backbone used by agents/qwen_agent.py."
