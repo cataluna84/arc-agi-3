@@ -23,11 +23,11 @@
 | 12 | 0.51 | Mon Tiger | mid-tier |
 | 13 | 0.50 | Sergei Fironov | a known Kaggle Grandmaster |
 | 21 | 0.43 | Ali | mid-tier |
-| 22 | 0.42 | ashvin singh | author of public notebook "Ash's ARC-AGI-3 Agent" (0.42) |
+| 22 | 0.42 | ashvin singh | author of the upstream public FORGE-v19 notebook our exp001 forks |
 
 **Best public-scored notebooks** (descending):
 
-1. **Ash's ARC-AGI-3 Agent** — 0.42, 111★ Silver
+1. **Upstream FORGE-v19 notebook** (our exp001 fork's source) — 0.42 advertised, 111★ Silver
 2. **FORGE ARC-AGI-3 Agent** — 0.39, 124★ Gold
 3. **FORGE v16 Trigger-aware BFS** — 0.35, 90★ Silver
 4. **Hybrid Search-and-Learn Agent | 0.35+ LB** — 0.35, 17★

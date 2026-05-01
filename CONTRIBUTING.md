@@ -148,9 +148,10 @@ KGAT_-format Kaggle tokens require Bearer auth - the helper scripts in
   separator block. We don't (yet) enforce a docstring style.
 - **Logging vs print**: scripts may `print()` (CLI affordance). Library code
   in `agents/` should use `logging`.
-- **Comments**: explain *why*, not *what*. The `_ash_my_agent_v19.py` file
-  is the only intentionally un-touched code -- do **not** edit it directly.
-  Local adaptations belong in `agents/ash_agent.py`.
+- **Comments**: explain *why*, not *what*. The `_forge_v19.py` file is the
+  only intentionally un-touched code -- do **not** edit it directly. Local
+  adaptations belong in `agents/forge_agent.py`. See [NOTICE](NOTICE) for
+  the upstream attribution.
 - **No unrequested deps**: if you need a new third-party package, mention
   it in the PR description with a one-line justification. Most heavy ML
   deps (torch, transformers, accelerate, ...) are pre-installed on

@@ -61,11 +61,11 @@ package = false
 line-length = 100
 target-version = "py312"
 extend-exclude = [
-    "agents/_ash_my_agent_v19.py",   # verbatim-vendored upstream Ash notebook; do not edit
+    "agents/_forge_v19.py",          # verbatim-vendored upstream FORGE v19 notebook; do not edit
     "data",                          # downloaded Kaggle wheels + agents harness
     "runs",                          # local smoke-run JSON outputs
     "documentation",                 # MHTML mirrors of comp pages
-    "research",                      # exa research reports + ash notebook capture
+    "research",                      # exa research reports + captured upstream notebook
     "environment_files",             # arc-agi-3 game source files (downloaded)
     "*.ipynb",                       # notebooks excluded from ruff (we don't lint cells)
 ]
@@ -124,8 +124,8 @@ ignore = [
 "experiments/**/*.py" = ["T201", "ARG001", "ARG002"]
 # Local stub of upstream agents.agent.Agent - must mirror upstream API exactly
 "agents/agent.py" = ["N803", "ARG002"]
-# Adapter to verbatim Ash port - mirrors upstream conventions
-"agents/ash_agent.py" = [
+# Adapter to verbatim FORGE port - mirrors upstream conventions
+"agents/forge_agent.py" = [
     "PTH100", "PTH103", "PTH110", "PTH120", "PTH123", "PTH207",  # upstream uses os.path
     "S108",     # /kaggle/input + /tmp paths are upstream convention
     "SIM115",   # one-off file reads

@@ -42,4 +42,4 @@
 
 ## Score-delta convention
 
-- All "Δ over baseline" deltas are measured against **0.19** (vanilla Ash fork, rank 398). Not 0.25 nor 0.42.
+- All "Δ over baseline" deltas are measured against **0.19** (vanilla fork of the upstream FORGE-v19 notebook, rank 398, submitted 2026-04-29). Not 0.25 nor 0.42.

@@ -1,13 +1,13 @@
 {
-  "experiment": "exp002_ash_variance_probe",
-  "notebook": "Ash's ARC-AGI-3 Agent (vanilla fork)",
+  "experiment": "exp002_forge_variance_probe",
+  "notebook": "FORGE v19 baseline (vanilla fork of upstream)",
   "runs": [
     {
       "run_index": 1,
       "date": "2026-04-29",
       "score": 0.19,
       "rank": 398,
-      "from_exp": "exp001_baseline_ash",
+      "from_exp": "exp001_baseline_forge",
       "notes": "Initial submission; user-recorded."
     }
   ],

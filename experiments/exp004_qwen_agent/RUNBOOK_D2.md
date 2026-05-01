@@ -34,12 +34,12 @@ Find the row from yesterday (2026-04-29). Note the score. If it's already in the
 
 | Yesterday's `s2` outcome | Today's action |
 |---|---|
-| `s2 >= 0.30` (much higher than 0.19) | **Track A**: Ash resubmit #2 (variance probe). High-variance hypothesis is alive; one more sample resolves it. |
+| `s2 >= 0.30` (much higher than 0.19) | **Track A**: FORGE resubmit #2 (variance probe). High-variance hypothesis is alive; one more sample resolves it. |
 | `0.10 <= s2 <= 0.30` | **Track C**: hold the slot. We have enough info from `(0.19, s2)` - mean ~0.19, std small. Spend the day on exp004 dev kernels. |
 | `s2 < 0.10` | **Track A**: resubmit (something went wrong; rule out infrastructure failure). |
 | Submission still pending / errored / didn't grade | Track C: hold slot, advance exp004. Burn the slot only if there's a clear submission to make. |
 
-If you choose Track A, run `bash scripts/resubmit_ash.sh` and skip to section 6 (it'll take its own day; no Qwen progress).
+If you choose Track A, run `bash scripts/resubmit_forge.sh` and skip to section 6 (it'll take its own day; no Qwen progress).
 
 For everything else, continue with Track B/C below (Qwen advancement, no slot consumed).
 
@@ -318,4 +318,4 @@ If you discovered a new Kaggle / Qwen / SDK gotcha, also add a one-liner to `.fa
 | `cataluna84/qwen-comp-arc-agi-3` | competition kernel (only when ready) |
 | `cataluna84/arc-agi-3-agents-pkg` | Dataset bundling our agents/ dir |
 | `cataluna84/qwen3-6-35b-a3b-bf16` | Dataset with Qwen weights (created by bundler) |
-| `cataluna84/ash-s-arc-agi-3-agent` | our Ash fork (Track A resubmit target) |
+| `cataluna84/ash-s-arc-agi-3-agent` | our forked FORGE-v19 baseline kernel (slug retained from upstream; Track A resubmit target) |

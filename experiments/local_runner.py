@@ -256,7 +256,7 @@ def run_game(
     # FrameDataRaw; our MockGame mirrors the same property.
     frame = env.observation_space
 
-    # Some agents (e.g. AshAgent) need access to the running env to look up
+    # Some agents (e.g. ForgeAgent) need access to the running env to look up
     # game source files for their planner. Pass it through if the constructor
     # accepts it; otherwise fall back to the simple (seed,) signature.
     import inspect as _inspect

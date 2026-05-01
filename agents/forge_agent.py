@@ -1,9 +1,9 @@
-"""ash_agent.py - Local adapter for the verbatim-ported Ash FORGE v19 agent.
+"""forge_agent.py - Local adapter for the verbatim-ported FORGE v19 agent.
 
-The actual agent source lives in `agents/_ash_my_agent_v19.py` and is a
-**bit-for-bit copy of cell #1 of `ashvinsingh/ash-s-arc-agi-3-agent`**
-(pulled via `kaggle kernels pull` on 2026-04-29). Do not edit the
-`_ash_my_agent_v19.py` file directly -- if the upstream notebook updates,
+The actual agent source lives in `agents/_forge_v19.py` and is a
+**bit-for-bit copy of cell #1 of the upstream Kaggle notebook we forked
+on 2026-04-29** (see NOTICE for upstream attribution). Do not edit the
+`_forge_v19.py` file directly -- if the upstream notebook updates,
 re-pull and overwrite. Local adaptations belong in this file instead.
 
 This module:
@@ -12,14 +12,14 @@ This module:
   2. Patches `find_game_source_and_class` to also search our local
      `data/kaggle/arc-prize-2026-arc-agi-3/environment_files/` tree
      (the upstream version only knows about `/kaggle/input/...`).
-  3. Exposes `AshAgent` -- a thin subclass of the upstream `MyAgent` that
+  3. Exposes `ForgeAgent` -- a thin subclass of the upstream `MyAgent` that
      plugs into our `experiments/local_runner.py` contract:
-         agent = AshAgent(seed=0, arc_env=env)
+         agent = ForgeAgent(seed=0, arc_env=env)
          action = agent.choose_action(latest_frame)
          done   = agent.is_done(latest_frame)
      while delegating all real work to the upstream class.
 
-To run the Ash agent locally you need PyTorch installed in the venv
+To run the FORGE agent locally you need PyTorch installed in the venv
 (it's NOT in the Kaggle-bundled wheels and isn't a pyproject dep):
 
     uv pip install --python .venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
@@ -28,7 +28,7 @@ To run the Ash agent locally you need PyTorch installed in the venv
 
 Smoke test:
     .venv/bin/python experiments/local_runner.py \\
-        --agent agents.ash_agent:AshAgent \\
+        --agent agents.forge_agent:ForgeAgent \\
         --use-sdk --games ls20 --max-actions 200 --seed 0
 """
 
@@ -139,7 +139,7 @@ def _find_game_source_and_class_local(game_id: str, arc_env: Any | None = None):
 # Lazy upstream import (so missing torch fails gracefully)
 # ---------------------------------------------------------------------------
 
-_MyAgent = None  # populated on first AshAgent() construction
+_MyAgent = None  # populated on first ForgeAgent() construction
 _import_error: BaseException | None = None
 
 
@@ -148,7 +148,7 @@ def _ensure_upstream_loaded() -> None:
     if _MyAgent is not None or _import_error is not None:
         return
     try:
-        from . import _ash_my_agent_v19 as _src  # imports torch, numpy, arcengine
+        from . import _forge_v19 as _src  # imports torch, numpy, arcengine
     except ImportError as e:
         _import_error = e
         return
@@ -160,14 +160,14 @@ def _ensure_upstream_loaded() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AshAgent adapter
+# ForgeAgent adapter
 # ---------------------------------------------------------------------------
 
 
-class AshAgent:
-    """Adapter that bridges Ash's MyAgent (FORGE v19) to local_runner."""
+class ForgeAgent:
+    """Adapter that bridges the upstream MyAgent (FORGE v19) to local_runner."""
 
-    name = "ash"
+    name = "forge"
 
     def __init__(
         self,
@@ -182,7 +182,7 @@ class AshAgent:
         _ensure_upstream_loaded()
         if _MyAgent is None:
             raise ImportError(
-                "AshAgent depends on PyTorch (torch / torch.nn / torch.optim) "
+                "ForgeAgent depends on PyTorch (torch / torch.nn / torch.optim) "
                 "and the bundled arc-agi wheels, but the import failed:\n"
                 f"    {type(_import_error).__name__}: {_import_error}\n"
                 "Install torch into the venv:\n"
@@ -199,14 +199,14 @@ class AshAgent:
         self._inner = _MyAgent(
             card_id="",
             game_id=game_id,
-            agent_name="ash",
+            agent_name="forge",
             ROOT_URL="",
             record=False,
             arc_env=arc_env,
         )
 
     def choose_action(self, frame: Any):
-        # Ash's MyAgent expects (frames_history, latest_frame). For our
+        # The upstream MyAgent expects (frames_history, latest_frame). For our
         # purposes the inner class maintains its own frame buffer via
         # append_frame(); we just give it the latest frame as both args.
         self._inner.append_frame(frame)
@@ -219,4 +219,4 @@ class AshAgent:
         return bool(self._inner.is_done(self._inner.frames, frame))
 
 
-__all__ = ["AshAgent"]
+__all__ = ["ForgeAgent"]

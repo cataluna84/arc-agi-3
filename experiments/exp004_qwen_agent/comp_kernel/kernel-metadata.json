@@ -1,7 +1,7 @@
 {
-  "id": "cataluna84/qwen-dev-arc-agi-3",
-  "title": "Qwen Dev ARC-AGI-3",
-  "code_file": "qwen_agent_dev.ipynb",
+  "id": "cataluna84/qwen-comp-arc-agi-3",
+  "title": "Qwen Comp ARC-AGI-3",
+  "code_file": "qwen_agent_comp.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": "true",

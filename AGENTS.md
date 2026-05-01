@@ -24,9 +24,10 @@ This file is the project's high-density briefing packet. It serves a
 Compete on Kaggle's [ARC-AGI-3][comp] ($850K prize pool, ends
 **2026-11-02**, 1 submission/day).
 
-**Baseline LB anchor**: **0.19** (vanilla fork of *Ash's ARC-AGI-3 Agent*,
-rank 398, submitted 2026-04-29). All "delta over baseline" deltas are
-measured against this number, not 0.25 nor 0.42.
+**Baseline LB anchor**: **0.19** (vanilla fork of an upstream public
+Kaggle notebook implementing FORGE v19, rank 398, submitted 2026-04-29).
+See [NOTICE](NOTICE) for upstream attribution. All "delta over baseline"
+deltas are measured against this **0.19** number.
 
 [comp]: https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3
 
@@ -38,7 +39,7 @@ measured against this number, not 0.25 nor 0.42.
 | `experiments/` | Per-day experiment folders (`expNNN_<slug>/`) + `EXPERIMENTS.md` plan |
 | `experiments/local_runner.py` | Offline smoke harness (mock + arc-agi SDK fallback) |
 | `scripts/` | Local dev helpers (Kaggle data download, SDK installer, smoke runners) |
-| `research/` | Landscape review + Exa Deep Research dossier + captured Ash notebook |
+| `research/` | Landscape review + Exa Deep Research dossier + captured upstream notebook |
 | `documentation/kaggle/` | MHTML mirrors of comp pages + extracted plain text |
 | `runs/` | Local smoke-run JSON outputs (gitignored) |
 | `data/kaggle/arc-prize-2026-arc-agi-3/` | Kaggle competition data + wheels (gitignored; populate via `scripts/download_kaggle_data.py`) |
@@ -80,7 +81,7 @@ Kaggle integration:
 uv run python scripts/download_kaggle_data.py        # fetch comp data + wheels
 uv run python scripts/install_arc_agi_sdk.py         # install arc-agi + arcengine offline
 uv run python experiments/local_runner.py \
-    --agent agents.ash_agent:AshAgent \
+    --agent agents.forge_agent:ForgeAgent \
     --use-sdk --games <real-id>                      # real SDK loop
 ```
 
@@ -116,9 +117,9 @@ Custom Factory extensions (empty stubs): `.factory/{droids,commands,hooks,skills
 - **Lazy-import heavy deps** (torch, transformers, PIL, ...) inside agents
   so the module imports cleanly without GPU libs (the smoke runner walks
   the `agents/` package).
-- **Do not edit `agents/_ash_my_agent_v19.py`** -- it is a verbatim
-  vendored copy of upstream cell #1. Local adaptations belong in
-  `agents/ash_agent.py`.
+- **Do not edit `agents/_forge_v19.py`** -- it is a verbatim vendored
+  copy of upstream cell #1 (see [NOTICE](NOTICE) for attribution).
+  Local adaptations belong in `agents/forge_agent.py`.
 - **Treat `.factory/memories.md` as append-only.** New dated section
   at the **top** every day.
 - **Treat `.factory/rules/*.md` as slowly-evolving facts.**

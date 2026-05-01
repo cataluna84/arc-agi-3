@@ -14,10 +14,12 @@
 
 [comp]: https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3
 
-**Current state**: bootstrapping. Baseline LB = **0.19** (vanilla fork of
-*Ash's ARC-AGI-3 Agent*, rank 398). All "delta over baseline" deltas are
-measured against this number, not 0.25 nor 0.42. See
-[`.factory/memories.md`](.factory/memories.md) for the running narrative.
+**Current state**: bootstrapping. Baseline LB = **0.19** (vanilla fork of an
+upstream public Kaggle notebook implementing FORGE v19, BFS + ForgeNet CNN;
+see [NOTICE](NOTICE) for the upstream credit). The fork was submitted on
+2026-04-29 and landed at **rank 398** on the public LB. All "delta over
+baseline" deltas downstream are measured against this **0.19** number.
+See [`.factory/memories.md`](.factory/memories.md) for the running narrative.
 
 ---
 
@@ -108,14 +110,14 @@ arc-agi-3/
 |   |-- agent.py                    # Local stub of upstream agents.agent.Agent
 |   |-- random_agent.py             # baseline 1: uniform-random over available actions
 |   |-- greedy_explore_agent.py     # baseline 2: empirical change-rate epsilon-greedy
-|   |-- ash_agent.py                # adapter for the verbatim Ash port
-|   |-- _ash_my_agent_v19.py        # VENDORED: bit-for-bit Ash FORGE v19 - do not edit
+|   |-- forge_agent.py              # adapter for the verbatim FORGE port
+|   |-- _forge_v19.py                # VENDORED: bit-for-bit FORGE v19 cell #1 - do not edit
 |   `-- qwen_agent.py               # Qwen3.6-35B-A3B vision-language agent (exp004)
 |-- experiments/
 |   |-- EXPERIMENTS.md              # tracker of all expNNN folders
 |   |-- local_runner.py             # offline smoke harness (mock + arc-agi SDK fallback)
-|   |-- exp001_baseline_ash/        # the 0.19 anchor
-|   |-- exp002_ash_variance_probe/  # variance probe for the Ash baseline
+|   |-- exp001_baseline_forge/      # the 0.19 LB anchor (vanilla fork)
+|   |-- exp002_forge_variance_probe/ # variance probe for the FORGE baseline
 |   |-- exp003_baseline_just_explore/   # orthogonal reference baseline
 |   |-- exp004_qwen_agent/          # Qwen3.6-35B-A3B agent + bundling kernels (active)
 |   |-- kernel_h100_probe/          # sanity probe of Kaggle's H100 image
@@ -124,13 +126,13 @@ arc-agi-3/
 |   |-- download_kaggle_data.py     # pulls competition data via Kaggle API (KGAT_-aware)
 |   |-- install_arc_agi_sdk.py      # offline install of arc-agi + arcengine wheels
 |   |-- qwen_agent_smoke_local.py   # pure-Python QwenAgent smoke (no GPU)
-|   |-- resubmit_ash.sh             # variance-probe helper (Track A in RUNBOOK_D2)
+|   |-- resubmit_forge.sh           # variance-probe helper (Track A in RUNBOOK_D2)
 |   `-- README.md                   # script catalogue
 |-- research/
 |   |-- 01_landscape_review.md      # LB landscape + top public notebooks + attack ranking
 |   |-- 02_exa_deep_research_2026-04-29.md   # Exa Deep Researcher Pro report
 |   |-- 03_strategy_and_kaggle_compute_2026-04-29.md
-|   `-- ash_notebook/               # captured Ash notebook + extracted text
+|   `-- ash_notebook/               # captured upstream notebook + extracted text
 |-- documentation/
 |   `-- kaggle/                     # MHTML mirrors of comp pages + extracted text
 |-- .factory/                       # canonical project memory (Factory.ai convention)
@@ -198,7 +200,7 @@ For tomorrow's specific runbook, see
 | --- | --- | --- | --- |
 | `RandomAgent` | `agents/random_agent.py` | uniform over `available_actions`; ACTION6 click is uniform-random | working |
 | `GreedyExploreAgent` | `agents/greedy_explore_agent.py` | epsilon-greedy on per-action empirical frame-change rate | working |
-| `AshAgent` | `agents/ash_agent.py` | adapter around verbatim Ash FORGE v19 (BFS + ForgeNet CNN) | working (CPU + CUDA) |
+| `ForgeAgent` | `agents/forge_agent.py` | adapter around verbatim FORGE v19 (BFS + ForgeNet CNN) | working (CPU + CUDA) |
 | `QwenAgent` | `agents/qwen_agent.py` | vision-language MoE: image + hex grid + history -> ACTION (`Qwen3.6-35B-A3B` BF16) | scaffolded; awaiting H100 dev kernel run |
 
 The agent contract is documented at the top of
@@ -230,7 +232,7 @@ The hardware constraints we've verified on Kaggle's H100 image
 
 | Phase | Days | Target | Δ vs 0.19 | Approach |
 | --- | --- | --- | --- | --- |
-| 0 - Foundation | D0..D4 | 0.19-0.30 | +0.00..+0.11 | Anchor on Ash 0.19, variance probe, local runner + agent zoo |
+| 0 - Foundation | D0..D4 | 0.19-0.30 | +0.00..+0.11 | Anchor on FORGE 0.19, variance probe, local runner + agent zoo |
 | 1 - Core search + learning | D5..D7 | 0.30-0.35 | +0.11..+0.16 | Trigger-aware BFS, StochasticGoose CNN, hybrid search-and-learn |
 | 2 - Object-centric + WM | D8..D12 | 0.40-0.50 | +0.21..+0.31 | Segmentation+click, MCTS+CNN prior, DreamerV3-lite |
 | 3 - TTT, DSL, slot WM | D13..D16 | 0.50-0.55 | +0.31..+0.36 | Test-Time Training, DSL synthesis, slot-attention world model |
@@ -264,7 +266,7 @@ The Ruff ruleset is intentionally broad - `E`, `W`, `F`, `I`, `B`,
 `C4`, `UP`, `RUF`, `SIM`, `TID`, `PTH`, `PERF`, `A`, `ARG`, `S`, `N`,
 `RET`, `TCH`, `ICN`, `ISC` - with pragmatic per-file ignores for
 intentional patterns (e.g. `/tmp` paths on Kaggle, mirrors of upstream
-APIs, etc.). The vendored Ash port (`agents/_ash_my_agent_v19.py`) is
+APIs, etc.). The vendored FORGE port (`agents/_forge_v19.py`) is
 excluded from linting since it is a verbatim copy.
 
 Run all the checks locally exactly as CI runs them:

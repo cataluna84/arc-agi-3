@@ -4,37 +4,37 @@
 >
 > **Constraint**: 1 Kaggle submission/day. Each daily slot must move the score, build a foundation, or kill a hypothesis.
 >
-> **Locked-in baseline**: the user's existing submission (vanilla fork of **Ash's ARC-AGI-3 Agent**) scored **0.19** at rank 398. Every "Δ over baseline" downstream is measured against **0.19**, not 0.25 nor 0.42.
+> **Locked-in baseline**: the user's existing submission (vanilla fork of an upstream public **FORGE v19** Kaggle notebook) scored **0.19** at rank 398 on 2026-04-29. Every "Δ over baseline" downstream is measured against **0.19**, not 0.25 nor 0.42. See `NOTICE` for upstream attribution.
 
 ---
 
 ## Phase 0 — Foundation: anchor & understand variance (Days 0–3)
 
-### [x] D0: Vanilla fork of Ash's ARC-AGI-3 Agent (anchor)
+### [x] D0: Vanilla fork of upstream FORGE v19 (anchor)
 
 **Goal**: anchor the LB pipeline and lock in our baseline number.
 
-- [x] Forked "Ash's ARC-AGI-3 Agent" on Kaggle (advertised public ~0.42)
+- [x] Forked the upstream FORGE-v19 notebook on Kaggle (advertised public ~0.42)
 - [x] Submitted unchanged
 - [x] **Result: LB 0.19, rank 398** — a −0.23 reproduction gap from the published number
 
 **DoD**: green submission with a real LB number. (DONE)
-See: `experiments/exp001_baseline_ash/`.
+See: `experiments/exp001_baseline_forge/`.
 
-### [x] D1: Ash variance probe — resubmit #1 (exp002) — slot used 2026-04-29
+### [x] D1: FORGE variance probe — resubmit #1 (exp002) — slot used 2026-04-29
 
 **Goal**: figure out whether 0.19 is "the real expected score" or just a low-variance draw.
 
-- [x] Re-submitted (or planned to re-submit) the SAME forked Ash's notebook unchanged
+- [x] Re-submitted (or planned to re-submit) the SAME forked FORGE notebook unchanged
 - [ ] Record `s2`; compare to 0.19  (result lands ~24 h after submission, append to memories.md)
 
 **DoD**: a second LB data point recorded; absolute diff `|s2 - 0.19|` logged in `.factory/memories.md`.
 
-### [ ] D2 (2026-04-30): Ash variance probe #2 (exp002) **OR** Qwen agent submission (exp004)
+### [ ] D2 (2026-04-30): FORGE variance probe #2 (exp002) **OR** Qwen agent submission (exp004)
 
 The two tracks compete for tomorrow's daily slot. Decision is made the morning of D2 once `s2` from D1 is visible:
 
-- **Track A — Ash variance probe #2** (consume slot): only sensible if `s2` is unexpectedly high (≥ 0.30) or unexpectedly low (≤ 0.10). Otherwise we already have enough information from `(0.19, s2)` to decide.
+- **Track A — FORGE variance probe #2** (consume slot): only sensible if `s2` is unexpectedly high (≥ 0.30) or unexpectedly low (≤ 0.10). Otherwise we already have enough information from `(0.19, s2)` to decide.
 - **Track B — exp004 Qwen3.6-35B-A3B agent** (consume slot): submit ONLY if exp004 dev-kernel smoke shows healthy results overnight (per-action latency < 10 s, ≥ 1 level completed on `ls20`). Otherwise dev-kernel iteration continues with no slot used.
 - **Track C — defer slot, accelerate exp004**: if neither A nor B is ready, hold the slot and spend the day finishing exp004 dev-kernel iteration. We never have to use the slot.
 
@@ -58,9 +58,9 @@ The two tracks compete for tomorrow's daily slot. Decision is made the morning o
 ### [x] D4: Local runner + agents/ skeleton (no Kaggle slot)
 
 - [x] `experiments/local_runner.py` drafted with mock + SDK fallback
-- [x] `agents/random_agent.py`, `agents/greedy_explore_agent.py`, `agents/ash_agent.py` (port of forked notebook), `agents/qwen_agent.py` (Qwen3.6-35B-A3B VLM)
+- [x] `agents/random_agent.py`, `agents/greedy_explore_agent.py`, `agents/forge_agent.py` (port of forked notebook), `agents/qwen_agent.py` (Qwen3.6-35B-A3B VLM)
 - [x] `python experiments/local_runner.py --agent agents.random_agent:RandomAgent --games ls20-mock` exits 0
-- [x] `python experiments/local_runner.py --agent agents.ash_agent:AshAgent --use-sdk --games ls20` reaches `levels_completed=1` in 50 actions
+- [x] `python experiments/local_runner.py --agent agents.forge_agent:ForgeAgent --use-sdk --games ls20` reaches `levels_completed=1` in 50 actions
 
 **DoD**: agents importable; runner exits 0; QwenAgent local smoke (`scripts/qwen_agent_smoke_local.py`) passes 22/22 checks without GPU.
 
@@ -102,9 +102,9 @@ Combine D5 and D6: use CNN to score each action's change probability, then expan
 
 ## Phase 2 — Compose toward 0.45+ (Days 9–14)
 
-### [ ] D8: Push past the Ash 0.42 ceiling
+### [ ] D8: Push past the FORGE 0.42 advertised ceiling
 
-The user's Ash fork landed at 0.19 (heavy reproduction gap). After exp002 variance probe, we know if Ash is a useful platform; if so, layer on:
+The user's FORGE fork landed at 0.19 (heavy reproduction gap from the upstream's advertised 0.42). After exp002 variance probe, we know if FORGE is a useful platform; if so, layer on:
 - per-level model reset
 - ACTION6 saliency from segmentation
 - frame-delta priority
@@ -125,7 +125,7 @@ The user's Ash fork landed at 0.19 (heavy reproduction gap). After exp002 varian
 - Maintain *symbolic* state (objects + relations + bounding boxes).
 - Replace ACTION6(x,y) random with ACTION6(centroid_of_object).
 
-**DoD**: ≥ 0.43, Ash's ceiling broken.
+**DoD**: ≥ 0.43, the FORGE advertised ceiling broken.
 
 ### [ ] D11: **MCTS with neural prior** (UCT + StochasticGoose CNN as policy prior)
 
@@ -211,7 +211,7 @@ Pre-train DreamerV3 / Decision Transformer on action–state traces of public ga
 
 ## Definition of Done for each phase
 
-- **Phase 0**: 0.19 baseline anchored; variance of Ash's notebook understood; local runner working. Done.
+- **Phase 0**: 0.19 baseline anchored; variance of the upstream FORGE notebook understood; local runner working. Done.
 - **Phase 1**: one of our notebooks ≥ 0.35 on Kaggle (Δ ≥ +0.16 over 0.19 anchor).
 - **Phase 2**: ≥ 0.45 on Kaggle (Δ ≥ +0.26).
 - **Phase 3**: ≥ 0.55, top-10 on public LB (Δ ≥ +0.36).

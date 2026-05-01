@@ -102,14 +102,10 @@ def suite_build_prompt() -> None:
         print("  [info] PIL not installed; text-only prompt verified")
 
     text = (text_part or {}).get("text", "")
-    _check("text mentions available_actions", "Available actions" in text)
+    _check("text mentions available actions", "Available:" in text)
     _check(
         "text contains the actual ACTION1/2/3/4/6 list",
         all(f"ACTION{i}" in text for i in (1, 2, 3, 4, 6)),
-    )
-    _check(
-        "text includes a hex-grid block",
-        "Text grid" in text and "\n" in text and any(c in text for c in "0123456789abcdef"),
     )
     _check(
         "text includes recent history lines",
@@ -117,8 +113,8 @@ def suite_build_prompt() -> None:
     )
     sys_text = messages[0]["content"].lower()
     _check(
-        "system asks to output ACTIONn on last line",
-        "actionn" in sys_text and "last line" in sys_text,
+        "system asks for terse single-action reply",
+        "actionn" in sys_text and "one action only" in sys_text,
     )
 
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# scripts/resubmit_ash.sh - prepares exp002 (Ash variance probe) by pulling our
-# existing Ash fork and pushing it back unchanged. Does NOT auto-submit; prints
-# the manual `kaggle competitions submit-code` command at the end so you can
-# review the new kernel version before burning today's daily submission slot.
+# scripts/resubmit_forge.sh - prepares exp002 (FORGE variance probe) by pulling
+# our existing forked Kaggle kernel and pushing it back unchanged. Does NOT
+# auto-submit; prints the manual `kaggle competitions submit-code` command at
+# the end so you can review the new kernel version before burning today's
+# daily submission slot.
 #
 # Usage:
-#   bash scripts/resubmit_ash.sh
+#   bash scripts/resubmit_forge.sh
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,13 +20,16 @@ set +a
 # KGAT_ tokens require Bearer auth via KAGGLE_API_TOKEN; the kernels CLI honours it.
 export KAGGLE_API_TOKEN="${KAGGLE_KEY:-}"
 
+# Kaggle slug of our forked kernel - retains the upstream's slug because that's
+# how Kaggle forks work. Override via KERNEL_REF=... if you re-fork later under
+# a renamed slug.
 KERNEL_REF="${KERNEL_REF:-cataluna84/ash-s-arc-agi-3-agent}"
 COMP_NAME="${COMP_NAME:-arc-prize-2026-arc-agi-3}"
-PULL_DIR="${ROOT_DIR}/experiments/exp002_ash_variance_probe/_pulled"
+PULL_DIR="${ROOT_DIR}/experiments/exp002_forge_variance_probe/_pulled"
 
 KAGGLE="${ROOT_DIR}/.venv/bin/kaggle"
 
-echo "=== exp002 - Ash variance probe ==="
+echo "=== exp002 - FORGE variance probe ==="
 echo "Kernel       : ${KERNEL_REF}"
 echo "Competition  : ${COMP_NAME}"
 echo "Pull dir     : ${PULL_DIR}"
@@ -56,5 +60,5 @@ cat <<EOF
     --kernel ${KERNEL_REF} \\
     --kernel-version ${NEW_VER:-<VER>} \\
     -f submission.parquet \\
-    -m "exp002 variance probe - Ash unchanged"
+    -m "exp002 variance probe - FORGE baseline unchanged"
 EOF

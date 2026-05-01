@@ -1,0 +1,39 @@
+5.4s 1 0.00s - Debugger warning: It seems that frozen modules are being used, which may
+5.4s 2 0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+5.4s 3 0.00s - to python to disable frozen modules.
+5.4s 4 0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
+5.9s 5 0.00s - Debugger warning: It seems that frozen modules are being used, which may
+5.9s 6 0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+5.9s 7 0.00s - to python to disable frozen modules.
+5.9s 8 0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
+6.9s 9 KAGGLE_IS_COMPETITION_RERUN = False
+6.9s 10 Qwen weights at /kaggle/input/datasets/cataluna84/qwen3-6-35b-a3b-bf16
+6.9s 11 transformers wheels at /kaggle/input/datasets/cataluna84/arc-agi-3-transformers-wheels
+6.9s 12 competition wheels at /kaggle/input/competitions/arc-prize-2026-arc-agi-3/arc_agi_3_wheels
+10.0s 13 PIL ok: 12.2.0 at /kaggle/working/_pillow_pkg/PIL/__init__.py
+12.3s 14 ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+12.3s 15 dopamine-rl 4.1.2 requires gym<=0.25.2, but you have gym 0.26.2 which is incompatible.
+12.3s 16 gradio 5.50.0 requires pillow<12.0,>=8.0, but you have pillow 12.2.0 which is incompatible.
+12.5s 17 ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+12.5s 18 dopamine-rl 4.1.2 requires gym<=0.25.2, but you have gym 0.26.2 which is incompatible.
+12.5s 19 gradio 5.50.0 requires pillow<12.0,>=8.0, but you have pillow 12.2.0 which is incompatible.
+12.5s 20
+12.5s 21 ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+12.5s 22 dopamine-rl 4.1.2 requires gym<=0.25.2, but you have gym 0.26.2 which is incompatible.
+12.5s 23 gradio 5.50.0 requires pillow<12.0,>=8.0, but you have pillow 12.2.0 which is incompatible.
+12.5s 24 arc-agi + arcengine + python-dotenv installed
+24.5s 25 transformers ok: 5.7.0 at /kaggle/working/_transformers_pkg/transformers/__init__.py
+24.5s 26 our agents/ at /kaggle/input/datasets/cataluna84/arc-agi-3-agents-pkg
+24.5s 27 wrote /kaggle/working/qwen_agent_lib.py (18238 bytes)
+24.5s 28 --- setup done at 09:18:14 ---
+24.5s 29 wrote /kaggle/working/my_agent.py: 2515 bytes
+24.5s 30 not in competition rerun; skipping harness
+25.1s 31 wrote dummy /kaggle/working/submission.parquet
+26.7s 32 /usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+26.7s 33 cells[i][c] = re.sub('\\\\\|', '|', cell)
+26.8s 34 /usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+26.8s 35 text = re.sub(r'_', '\_', text) # Escape underscores in display text
+27.2s 36 [NbConvertApp] Converting notebook __notebook__.ipynb to notebook
+27.4s 37 [NbConvertApp] Writing 19646 bytes to __notebook__.ipynb
+28.9s 38 [NbConvertApp] Converting notebook __notebook__.ipynb to html
+29.4s 39 [NbConvertApp] Writing 315536 bytes to __results__.html

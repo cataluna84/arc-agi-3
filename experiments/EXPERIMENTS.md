@@ -20,30 +20,30 @@ experiments/expNNN_<short-slug>/
 
 ## Phase 0 — Foundation: anchor the baseline & understand the variance
 
-> **Anchor**: the user already submitted a vanilla fork of **Ash's ARC-AGI-3 Agent** and got **LB 0.19** (rank 398). All later "Δ over baseline" numbers are vs **0.19**.
-> **Critical question**: Ash's notebook is advertised at ~0.42 public, but our reproduction is 0.19 — a −0.23 gap. We MUST understand why before designing new agents.
+> **Anchor**: the user submitted a vanilla fork of an upstream public Kaggle notebook implementing **FORGE v19** and got **LB 0.19** (rank 398) on 2026-04-29. All later "Δ over baseline" numbers are vs **0.19**. See [`NOTICE`](../NOTICE) for the upstream attribution.
+> **Critical question**: the upstream notebook is advertised at ~0.42 public, but our reproduction is 0.19 — a −0.23 gap. We MUST understand why before designing new agents.
 
-### exp001_baseline_ash
+### exp001_baseline_forge
 
 - **Status**: SUBMITTED. **LB 0.19**, rank 398.
-- **Notebook**: Vanilla fork of `Ash's ARC-AGI-3 Agent` (public, advertised ~0.42).
-- See `experiments/exp001_baseline_ash/README.md`.
+- **Notebook**: Vanilla fork of the upstream FORGE v19 notebook (public, advertised ~0.42).
+- See `experiments/exp001_baseline_forge/README.md`.
 
-### exp002_ash_variance_probe
+### exp002_forge_variance_probe
 
-- **Hypothesis**: Ash's agent is highly stochastic — re-running the *same notebook* will produce scores spread across a wide range. If true, the published 0.42 was lucky and our 0.19 is unlucky; the *expected* score is somewhere in between.
+- **Hypothesis**: FORGE v19 is highly stochastic — re-running the *same notebook* will produce scores spread across a wide range. If true, the published 0.42 was lucky and our 0.19 is unlucky; the *expected* score is somewhere in between.
 - **Action** (D1 + D2 — uses 2 Kaggle daily slots):
   1. **D1**: Resubmit the SAME forked notebook unchanged — record score `s2`.
   2. **D2**: Resubmit again — record score `s3`.
   3. Compute mean(0.19, s2, s3) and stddev. If stddev > 0.05 → agent is variance-dominated.
 - **Decision rule**:
-  - If max(s2, s3) ≥ 0.30 → variance is the issue; can use Ash's notebook with multiple seeds + best-of-N as a free LB lift.
-  - If max(s2, s3) < 0.25 → score is structurally low; abandon Ash's-as-baseline and switch to Stochastic Goose (exp003) or build our own (exp004+).
-- **DoD**: 3 data points captured in `exp002_ash_variance_probe/scores.json`; decision rule executed and logged in `.factory/memories.md`.
+  - If max(s2, s3) ≥ 0.30 → variance is the issue; can use FORGE with multiple seeds + best-of-N as a free LB lift.
+  - If max(s2, s3) < 0.25 → score is structurally low; abandon FORGE-as-baseline and switch to Stochastic Goose (exp003) or build our own (exp004+).
+- **DoD**: 3 data points captured in `exp002_forge_variance_probe/scores.json`; decision rule executed and logged in `.factory/memories.md`.
 
 ### exp003_baseline_just_explore
 
-- **Hypothesis**: Forking the `ARC3 Sample Submission - Just Explore` notebook will score ~0.19, comparable to our Ash reproduction but with a fully transparent agent loop. Lower-variance reference point.
+- **Hypothesis**: Forking the `ARC3 Sample Submission - Just Explore` notebook will score ~0.19, comparable to our FORGE reproduction but with a fully transparent agent loop. Lower-variance reference point.
 - **Action** (D3): fork and submit Just-Explore unchanged.
 - **DoD**: score recorded; agent loop annotated; reusable graph-state code identified for exp004+.
 
@@ -51,13 +51,13 @@ experiments/expNNN_<short-slug>/
 
 - **Hypothesis**: With a working local smoke runner (`experiments/local_runner.py`, already drafted) plus an `agents/` package that mirrors the SDK contract, every later experiment can validate offline before burning a Kaggle slot.
 - **Action** (D4 — no Kaggle submission; pure plumbing day):
-  1. Read `Ash's ARC-AGI-3 Agent` notebook line-by-line; extract the agent class to `agents/ash_agent.py`.
+  1. Vendor the upstream FORGE v19 cell #1 verbatim into `agents/_forge_v19.py`; write the local adapter at `agents/forge_agent.py`.
   2. Implement `agents/random_agent.py` and `agents/greedy_explore_agent.py` as known-low baselines (so we can verify the runner's plumbing works).
   3. Run `local_runner.py --agent agents.random_agent:RandomAgent --games ls20-mock` and confirm it returns valid stats.
-  4. Run `local_runner.py --agent agents.ash_agent:AshAgent --use-sdk --games <real-game-ids>` for at least one real public game; verify level-completion counts and action histograms look sane.
+  4. Run `local_runner.py --agent agents.forge_agent:ForgeAgent --use-sdk --games <real-game-ids>` for at least one real public game; verify level-completion counts and action histograms look sane.
 - **DoD**:
   - All three agents importable; runner exits 0 for each.
-  - The notebook agent + the extracted `AshAgent` class produce IDENTICAL trajectories on a fixed seed (sanity check that we lifted the code correctly).
+  - The notebook agent + the extracted `ForgeAgent` class produce IDENTICAL trajectories on a fixed seed (sanity check that we lifted the code correctly).
 
 ---
 

@@ -1,10 +1,10 @@
 """Local stand-in for the official `agents.agent.Agent` base class.
 
-Ash's notebook (and the bundled ARC-AGI-3-Agents harness) imports
-`from agents.agent import Agent`. On Kaggle that import resolves to the
-official harness package; locally we provide this minimal stub so the
-verbatim Ash source can be imported and instantiated by our local_runner
-without dragging in the entire harness.
+The vendored upstream notebook (and the bundled ARC-AGI-3-Agents harness)
+imports `from agents.agent import Agent`. On Kaggle that import resolves
+to the official harness package; locally we provide this minimal stub so
+the verbatim upstream source can be imported and instantiated by our
+local_runner without dragging in the entire harness.
 
 We deliberately match the surface area of the upstream Agent class
 (github.com/arcprize/ARC-AGI-3-Agents agents/agent.py) so that subclasses
@@ -27,7 +27,7 @@ class Agent:
     and `is_done(frames, latest_frame) -> bool`. Local invocation:
 
         agent = MyAgent(card_id="", game_id="ls20",
-                        agent_name="ash", ROOT_URL="",
+                        agent_name="forge", ROOT_URL="",
                         record=False, arc_env=env)
     """
 
@@ -63,9 +63,9 @@ class Agent:
         self.tags = tags or []
         self.frames = []  # subclasses populate this; the official harness
         # initializes with [FrameData(levels_completed=0)]
-        # but Ash's MyAgent doesn't depend on that detail.
+        # but the vendored upstream MyAgent doesn't depend on that detail.
         self._cleanup = True
-        # Note: do NOT set self.recorder here. Upstream Ash code does
+        # Note: do NOT set self.recorder here. The vendored upstream code does
         #     `if hasattr(self, "recorder") and not self.is_playback: ...`
         # If we set recorder = None, hasattr is True and the code crashes.
         # The recorder attribute is only set by start_recording() when
@@ -103,7 +103,7 @@ class Agent:
         return f"{self.game_id}.{n}" if self.game_id else n
 
     def append_frame(self, frame: Any) -> None:
-        """Append a frame; Ash's MyAgent overrides this to cap the buffer."""
+        """Append a frame; the vendored MyAgent overrides this to cap the buffer."""
         self.frames.append(frame)
         guid = getattr(frame, "guid", None)
         if guid:

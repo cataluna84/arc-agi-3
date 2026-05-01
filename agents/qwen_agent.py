@@ -49,7 +49,11 @@ from . import GameAction, GameState
 _DEFAULT_MODEL = "Qwen/Qwen3.6-35B-A3B"
 _DEFAULT_DTYPE = "bf16"
 _DEFAULT_DEVICE_MAP = "auto"
-_DEFAULT_MAX_NEW = 96
+# Decode-time dominates per-action latency (~57 ms/token on H100 BF16 35B-A3B).
+# An action label is 1-3 tokens; a coord pair another ~6. Cap at 16 to stay
+# under 1 s/action steady-state, leaving budget for 25 games x ~300 actions
+# in <6 h wall.
+_DEFAULT_MAX_NEW = 16
 _DEFAULT_HIST_LEN = 8
 _FRAME_UPSCALE = 8  # 64*8 = 512 px; matches Qwen vision encoder's preferred resolution
 
@@ -209,7 +213,9 @@ def build_prompt(
     layers = getattr(frame, "frame", None) or []
     grid = layers[0] if layers else None
     image = _frame_to_pil_image(grid)
-    grid_text = _frame_to_text_grid(grid) if text_grid else ""
+    # text_grid kept for API compat / future hybrid prompts; current prompt
+    # is image-only to keep input tokens (and decode time) low.
+    _ = _frame_to_text_grid(grid) if text_grid else ""
 
     # History: most-recent first, capped externally
     hist_lines = []
@@ -219,24 +225,20 @@ def build_prompt(
     hist_str = "\n".join(hist_lines) if hist_lines else "  (no actions yet)"
 
     system = (
-        "You are an agent playing ARC-AGI-3 puzzle games. "
-        "On every turn you observe a 64x64 colour grid (16 colours) and choose "
-        "one action that progresses toward the level's win condition. "
-        "Output exactly one of the listed actions on the LAST line of your reply "
-        "in the format 'ACTIONn' (e.g. ACTION3). For ACTION6 also include "
-        "coordinates as '(x, y)' with both in [0, 63]."
+        "You are an ARC-AGI-3 game agent. Reply with ONE action only, NO "
+        "explanation. Format: 'ACTIONn' on one line (e.g. ACTION3). For "
+        "ACTION6 add '(x, y)' both in [0,63]. Pick an action that visibly "
+        "changes the grid; vary actions if the previous one made no change."
     )
 
     user_content_parts: list[dict] = []
     if image is not None:
         user_content_parts.append({"type": "image", "image": image})
     user_text = (
-        f"Game: {getattr(frame, 'game_id', '?')}  state={state_str}  "
-        f"level={levels}/{win_levels}\n"
-        f"Available actions: {avail_str}\n"
-        f"Recent history (oldest -> newest):\n{hist_str}\n"
-        + (f"\nText grid (rows top-to-bottom, hex digits):\n{grid_text}\n" if grid_text else "")
-        + "\nThink briefly, then output ONE action on the last line."
+        f"state={state_str} level={levels}/{win_levels}\n"
+        f"Available: {avail_str}\n"
+        f"History (oldest->newest):\n{hist_str}\n"
+        "Output ONE action only."
     )
     user_content_parts.append({"type": "text", "text": user_text})
 
@@ -404,6 +406,24 @@ class QwenAgent:
         # 6. Parse action from reply, snap to available_actions
         avail = [int(a) for a in (getattr(frame, "available_actions", None) or [])]
         action, coords = parse_action(reply, avail)
+
+        # 6b. Anti-repeat: greedy decoding can lock the model into ACTION1
+        #     forever if the first-action prediction is sticky. If the recent
+        #     history shows this action has been picked AND yielded no-change
+        #     >= STUCK_THRESHOLD times in a row, deterministically rotate to
+        #     the next available action.
+        STUCK_THRESHOLD = 3
+        recent_no_change = [name for name, changed in self._history if not changed]
+        n_recent_same = sum(1 for n in recent_no_change[-STUCK_THRESHOLD:] if n == action.name)
+        if n_recent_same >= STUCK_THRESHOLD and avail:
+            sorted_avail = sorted(avail)
+            try:
+                idx = sorted_avail.index(int(action.name.replace("ACTION", "")))
+                next_id = sorted_avail[(idx + 1) % len(sorted_avail)]
+            except (ValueError, IndexError):
+                next_id = sorted_avail[0]
+            action = GameAction.from_id(next_id)
+            coords = None  # let downstream pick centre / random for ACTION6
 
         # 7. ACTION6 (click) coords: prefer parsed; else centre of grid
         if action.is_complex():

@@ -5,6 +5,76 @@
 
 ---
 
+## 2026-04-30 — D2 exp004 Qwen comp submission via CLI (Track B)
+
+### What we did
+- **CLI-driven full submission walkthrough**, documented top-to-bottom in `experiments/exp004_qwen_agent/D2_EXECUTION_LOG.md`. This is now the canonical contributor onboarding doc for "how do I push a Kaggle kernel and submit it from the CLI for ARC-AGI-3?".
+- **Three new private Kaggle Datasets**:
+  - `cataluna84/arc-agi-3-agents-pkg` (164 KB): mirrored `agents/` package so dev/comp kernels can import `qwen_agent_lib.QwenAgent` without internet.
+  - `cataluna84/qwen3-6-35b-a3b-bf16` (71.93 GB, 26 safetensors shards): HF mirror of `Qwen/Qwen3.6-35B-A3B`, uploaded via internet-enabled `bundle_qwen_kernel` (~19 min upload).
+  - `cataluna84/arc-agi-3-transformers-wheels` (16 MB, 10 wheels): transformers 5.7.0 + tokenizers 0.22.2 + 8 deps. Uploaded from local box via `kaggle datasets create -p ... --dir-mode tar` (the in-kernel `kagglehub.dataset_upload` 403's on `CreateDatasetVersion`).
+- **Step 3 dev kernel**: 11 iterations resolving Kaggle image bugs, all logged. Final v11 ran 50 actions on `ls20` in 780s (5.13s/action steady-state, 528s model load).
+- **Step 4 comp kernel**: new directory `experiments/exp004_qwen_agent/comp_kernel/` with a notebook that mirrors dev_kernel setup but writes `/kaggle/working/my_agent.py` shim, copies the official ARC-AGI-3-Agents harness from competition data, registers `MyAgent`, and runs `python main.py --agent myagent` only inside `KAGGLE_IS_COMPETITION_RERUN`. Save-test passed clean at 09:20 UTC.
+- **Step 5 submission BURNED** at 09:21 UTC: `kaggle competitions submit arc-prize-2026-arc-agi-3 -k cataluna84/qwen-comp-arc-agi-3 -v 1 -f submission.parquet -m "exp004 D2 Qwen3.6-35B-A3B BF16 baseline (Track B, expect ~0)"`. Status: PENDING.
+
+### Speed iteration (v9 -> v10 -> v11)
+- v9 (06:54-07:11 UTC): 5.50 s/action steady-state, 853s total, 0 levels in 50 actions on ls20.
+- v10 (07:27 UTC): max_new_tokens 96 -> 16, dropped text-grid from prompt. Result: 5.96 s/action - tiny improvement. Conclusion: decode wasn't the bottleneck.
+- v11 (07:47-08:03 UTC): added anti-repeat post-processor that rotates action when frame stays unchanged. Result: action distribution shifted from {ACTION1: 50} -> {ACTION1: 31, ACTION2: 19}. Per-action: 5.13s. Still 0 levels.
+- Vision prefill is the bottleneck. The 35B-A3B model spends most of each 5s on encoding the upscaled 512x512 image + chat-template tokens. To cut further we need vllm/sglang OR smaller image (256x256) OR smaller model OR kv-cache persistence between turns.
+
+### Expected score
+- ~0.0-0.1. We submitted anyway because the user wanted a Track B LB datapoint locked in. Below the 0.19 ForgeAgent baseline (yesterday's submission).
+
+### Files touched (all dated 2026-04-30)
+- Created: `experiments/exp004_qwen_agent/D2_EXECUTION_LOG.md` (~850 lines), `experiments/exp004_qwen_agent/transformers_bundle_kernel/`, `experiments/exp004_qwen_agent/comp_kernel/`.
+- Modified: `agents/qwen_agent.py` (max_new_tokens, prompt, anti-repeat), `scripts/qwen_agent_smoke_local.py` (prompt assertions), `experiments/exp004_qwen_agent/dev_kernel/qwen_agent_dev.ipynb` (path adapter, OFFLINE mode, PIL --target install, transformers --target install), `experiments/exp004_qwen_agent/dev_kernel/kernel-metadata.json` (dataset_sources +transformers-wheels), `.factory/rules/gotchas.md` (gotchas #11-14), `CHANGELOG.md`.
+
+### Verification
+- `uv run ruff check .` clean.
+- `uv run ruff format --check .` clean.
+- `uv run python scripts/qwen_agent_smoke_local.py`: 21/21 pass (was 22; lost the dropped "Text grid" check).
+- `uv run pre-commit run --all-files`: all hooks green.
+
+### Open
+- Submission status: PENDING as of 09:21 UTC. Real eval can take many hours; check `kaggle competitions submissions arc-prize-2026-arc-agi-3` periodically.
+- Next steps for D3: vision prefill speedup (vllm or smaller image), action diversity beyond 2-action rotation, possibly switch to Qwen2.5-VL-7B-Instruct (smaller, supported by transformers 5.0.0, no Track B dependencies).
+
+---
+
+## 2026-04-30 — Repo rename: "ash" → "forge" across all internal references
+
+### What we did
+- User feedback (rightly): the repo had "Ash" (the upstream Kaggle notebook author's handle) name-dropped throughout file names, class names, plan files, READMEs, and rules — making it look like the project was personally collaborating with that author when in fact we just forked their public notebook.
+- Renamed the algorithm-level identifiers to **FORGE / FORGE v19 / ForgeAgent**. FORGE is the technical name of the algorithm (BFS + ForgeNet CNN) used in the upstream code and is descriptive without naming a person.
+- File renames (all via `git mv` so history is preserved):
+  - `agents/ash_agent.py` → `agents/forge_agent.py`
+  - `agents/_ash_my_agent_v19.py` → `agents/_forge_v19.py`
+  - `experiments/exp001_baseline_ash/` → `experiments/exp001_baseline_forge/`
+  - `experiments/exp002_ash_variance_probe/` → `experiments/exp002_forge_variance_probe/`
+  - `scripts/resubmit_ash.sh` → `scripts/resubmit_forge.sh`
+- Symbol renames: `AshAgent` → `ForgeAgent`, `_ash_my_agent_v19` (module) → `_forge_v19`.
+- Doc/comment renames: "Ash's ARC-AGI-3 Agent" → "the upstream FORGE-v19 notebook" / "FORGE v19 baseline".
+- Kept upstream attribution (Apache 2.0 obligation) **only** in `NOTICE` and the `research/ash_notebook/` directory (the captured upstream artefact directory keeps its original name to make its provenance unambiguous).
+- Score is unchanged: **0.19, rank 398, 2026-04-29**. The user clarified "I only achieved a score of 0.19" — every doc that says 0.19 stays 0.19; the upstream's advertised 0.42 is referenced only as the upstream's number, never as our achievement.
+
+### Files touched
+- Renamed via `git mv`: 5 files (above).
+- Edited references: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `NOTICE`, `CITATION.cff`, `pyproject.toml`, `.pre-commit-config.yaml`, `experiments/EXPERIMENTS.md`, `experiments/local_runner.py`, `experiments/exp004_qwen_agent/RUNBOOK_D2.md`, `.factory/plan.md`, `.factory/rules/conventions.md`, `.factory/rules/leaderboard-anchors.md`, `.factory/rules/gotchas.md`, `.factory/rules/kaggle-submission.md`.
+- Pre-commit and ruff exclusion rules updated to point at the new vendored filename `agents/_forge_v19.py`.
+
+### Verification
+- `uv run ruff check .` clean.
+- `uv run ruff format --check .` clean.
+- `uv run python scripts/qwen_agent_smoke_local.py`: 22/22 pass.
+- `uv run python experiments/local_runner.py --agent agents.random_agent:RandomAgent --games ls20-mock --max-actions 30` exits 0.
+- `uv run pre-commit run --all-files` all hooks green.
+
+### Open
+- Today's daily Kaggle slot: still open. Decision tree from `RUNBOOK_D2.md` § 1 still applies. The score from yesterday's exp001 (now `exp001_baseline_forge`) is **0.19** — confirmed.
+
+---
+
 ## 2026-04-29 (later x7) — exp004 scaffold for Qwen3.6-35B-A3B; H100 dev kernel hard limits
 
 ### What we did
@@ -53,45 +123,45 @@
 ### What we did
 - Ran two parallel research probes (Exa Deep Reasoning + Ref MCP for Kaggle docs) on (a) ARC-AGI-3 LB strategy and (b) Kaggle programmatic compute access. Saved synthesis as `research/03_strategy_and_kaggle_compute_2026-04-29.md`.
 - Discovered the official `kaggle-cli/docs/kernels.md` lists 12 accelerator types (Feb 2026): P100, T4, T4Highmem, **A100**, **L4**, L4X1, **H100**, **RtxPro6000**, plus 4 TPU types. Older docs (e.g. product-feedback #173129 saying "P100 only") are stale.
-- Inspected Ash's `kernel-metadata.json`: he declares `"machine_shape": "NvidiaTeslaT4"`. Older PUBLIC interpretation was "T4 is the eval GPU".
+- Inspected the upstream FORGE notebook's `kernel-metadata.json`: it declares `"machine_shape": "NvidiaTeslaT4"`. Older PUBLIC interpretation was "T4 is the eval GPU".
 - **Pushed a 1-cell `nvidia-smi + torch.cuda` probe kernel to Kaggle with `--accelerator NvidiaH100` to verify allocation.** Result: kernel ran in ~14s, allocated **NVIDIA H100 80 GB HBM3 (sm_90, Hopper), driver 580.105.08, CUDA 13.0, container `gcr.io/kaggle-gpu-images/python@sha256:00377c...` (same SHA as the `private-byod` image we couldn't pull earlier — they're mirrored), Python 3.12.12, torch 2.10.0+cu128**. Saved to `runs/h100_probe/{h100-probe-arc-agi-3.log, h100_probe_result.json}`.
 
 ### Hard-won facts
 - **`gcr.io/kaggle-private-byod/python` and `gcr.io/kaggle-gpu-images/python` mirror the SAME SHA** (`00377cd1b3d470a605bc5b0ceca79969e369644e9b36802242a1c70e627372f9`). The 401 we hit earlier on `private-byod` was a permission misdirect — the same image is publicly accessible under `kaggle-gpu-images`. **If we ever want Docker parity, pull `gcr.io/kaggle-gpu-images/python:latest` (~40 GB).**
 - **The user has H100 access today via `kaggle kernels push --accelerator NvidiaH100`.** No special opt-in needed beyond attaching the kernel to `competition_sources: ["arc-prize-2026-arc-agi-3"]`. Quota is undocumented but the probe ran fine.
-- **Ash's `machine_shape: NvidiaTeslaT4` is metadata-only / probably stale.** The actual rerun container is the H100 image with the same SHA we saw on the H100 probe. Top public agents likely run on H100 during the competition rerun even if their dev metadata says T4.
+- **The upstream FORGE notebook's `machine_shape: NvidiaTeslaT4` is metadata-only / probably stale.** The actual rerun container is the H100 image with the same SHA we saw on the H100 probe. Top public agents likely run on H100 during the competition rerun even if their dev metadata says T4.
 - **Container Python 3.12.12 + torch 2.10.0+cu128** matches our local venv (Python 3.12, torch 2.11.0+cu128). Bit-perfect parity is essentially achieved without pulling the Docker image.
 - The KGAT_ token works for `kaggle kernels push` / `status` / `output` but **not** for `kaggle competitions list` (returns 401). Likely a Bearer-auth code path missing on that endpoint. Workaround: use the kernels-API path for competition kernels (which is what we want anyway).
 
 ### Strategy implications (full doc: research/03_strategy_and_kaggle_compute_2026-04-29.md)
 - **Tier 4 moonshots (bundled 7B-30B LLM, DreamerV3) are now feasible-on-Kaggle.** 80 GB H100 fits a 4-bit-quantized 30B-class LLM with room to spare for context. We were treating these as 4+ week longshots; they're now realistic 1-2 week experiments if we want them.
-- **The H100 doesn't help BFS-bound agents (Ash, FORGE).** BFS is pure-Python deepcopy + `perform_action` on the game class. No CUDA path. Our local 132s/50-actions on RTX 2070 is essentially what it'll be on H100 modulo CPU speed.
+- **The H100 doesn't help BFS-bound agents (FORGE / Trigger-Aware BFS).** BFS is pure-Python deepcopy + `perform_action` on the game class. No CUDA path. Our local 132s/50-actions on RTX 2070 is essentially what it'll be on H100 modulo CPU speed.
 - **Local development + Kaggle dev-kernel parity:** since the H100 image SHA is identical to the rerun image SHA (or at least the same family), pushing experimental kernels via `kaggle kernels push` (without submitting) gives us bit-perfect runtime tests at the cost of a few minutes of GPU time. Far cheaper than burning the daily 1-submission slot on a probe.
-- **Public LB landscape (April 2026)**: top private = 0.68; top public ≈ 0.42 (Ash's claimed); our reproduction = 0.19 (rank 398). Mid public 0.30-0.39 (Trigger-Aware BFS, FORGE, Hybrid Search-and-Learn). Low public 0.18-0.28 (Random, Just Explore, Stochastic Goose 0.25 sample baseline). Many speculative architectures published April 2026 with NO score = author wrote, never submitted. Frontier LLMs zero-shot = 0.001-0.005, so pure-language reasoning is worse than Random.
+- **Public LB landscape (April 2026)**: top private = 0.68; top public ≈ 0.42 (the upstream FORGE-v19 notebook's advertised number); our reproduction of that fork = 0.19 (rank 398). Mid public 0.30-0.39 (Trigger-Aware BFS, FORGE, Hybrid Search-and-Learn). Low public 0.18-0.28 (Random, Just Explore, Stochastic Goose 0.25 sample baseline). Many speculative architectures published April 2026 with NO score = author wrote, never submitted. Frontier LLMs zero-shot = 0.001-0.005, so pure-language reasoning is worse than Random.
 
 ### Files touched
 - Created: `research/03_strategy_and_kaggle_compute_2026-04-29.md`, `experiments/kernel_h100_probe/{kernel-metadata.json, h100_probe.ipynb}`, `runs/h100_probe/{h100_probe_result.json, h100-probe-arc-agi-3.log}`.
 - Modified: `.factory/rules/kaggle-submission.md` (corrected the "H100 only for ARC-AGI-3 notebooks" claim — actually all 12 accelerators are exposed; T4 is what `machine_shape` typically declares but H100 IS allocated when explicitly requested via `--accelerator NvidiaH100`).
 
 ### Next steps (revised, given H100 confirmed)
-- D1 (today/tomorrow): exp002 — Ash variance probe, resubmit unchanged (1 daily slot).
-- D2: exp002 — Ash resubmit #2 (variance probe).
+- D1 (today/tomorrow): exp002 — FORGE variance probe, resubmit unchanged (1 daily slot).
+- D2: exp002 — FORGE resubmit #2 (variance probe).
 - **OR** in parallel via dev-kernels (no submission cost): start prototyping a Tier 4 path (DreamerV3-torch or 7B local-Qwen agent) on H100 dev kernels — this is now realistic.
 - Reset .factory/rules/kaggle-submission.md to reflect H100 reality.
 
 ---
 
-## 2026-04-29 (later x5) — Ash port runs locally + CUDA torch stack + Docker / H100 parity decision
+## 2026-04-29 (later x5) — FORGE-v19 port runs locally + CUDA torch stack + Docker / H100 parity decision
 
 ### What we did
-- **Ported Ash's FORGE v19 (`ashvinsingh/ash-s-arc-agi-3-agent`) into `agents/ash_agent.py`**.
-  - Pulled the notebook via `kaggle kernels pull` (saved under `research/ash_notebook/`).
-  - Saved cell #1 verbatim (2055 lines) as `agents/_ash_my_agent_v19.py`. **Do NOT edit; treat as a vendored copy.** If the upstream notebook updates, re-pull and overwrite.
-  - Added `agents/agent.py` — local stub for `agents.agent.Agent` so the verbatim file's `from agents.agent import Agent` resolves. Mirrors the upstream harness surface (game_id, arc_env, frames, action_counter, etc.). **Does not set `self.recorder = None`** because Ash's `append_frame` does `if hasattr(self, "recorder"): self.recorder.record(...)` — a `None` recorder would crash the call.
-  - `agents/ash_agent.py` is the adapter: lazy-imports `_ash_my_agent_v19` (so missing torch gives a clear error), monkey-patches `find_game_source_and_class` to also search our local `data/kaggle/.../environment_files/<gid>/<guid>/<gid>.py`, and exposes `AshAgent` matching our `local_runner` contract (`choose_action(frame)` instead of upstream's `choose_action(frames, lf)`).
+- **Ported the upstream FORGE-v19 cell (`ashvinsingh/ash-s-arc-agi-3-agent`) into `agents/forge_agent.py`** (file later renamed from `ash_agent.py`; see 2026-04-30 entry above).
+  - Pulled the notebook via `kaggle kernels pull` (saved under `research/ash_notebook/` — captured-artefact directory keeps its original name).
+  - Saved cell #1 verbatim (2055 lines) as `agents/_forge_v19.py` (file later renamed from `_ash_my_agent_v19.py`). **Do NOT edit; treat as a vendored copy.** If the upstream notebook updates, re-pull and overwrite.
+  - Added `agents/agent.py` — local stub for `agents.agent.Agent` so the verbatim file's `from agents.agent import Agent` resolves. Mirrors the upstream harness surface (game_id, arc_env, frames, action_counter, etc.). **Does not set `self.recorder = None`** because the vendored upstream `append_frame` does `if hasattr(self, "recorder"): self.recorder.record(...)` — a `None` recorder would crash the call.
+  - `agents/forge_agent.py` is the adapter: lazy-imports `_forge_v19` (so missing torch gives a clear error), monkey-patches `find_game_source_and_class` to also search our local `data/kaggle/.../environment_files/<gid>/<guid>/<gid>.py`, and exposes `ForgeAgent` matching our `local_runner` contract (`choose_action(frame)` instead of upstream's `choose_action(frames, lf)`).
   - `experiments/local_runner.py` now passes `arc_env` and `game_id` to agents whose `__init__` accepts them (introspected via `inspect.signature`).
-- **Smoke tested Ash + SDK on `ls20`** (50-action budget):
-  - Result: `levels_completed=1`, `win_levels=7`, action histogram across [1,2,3,4]. **Random / Greedy got 0 levels in the same budget — Ash's BFS solver is a real win.**
+- **Smoke tested FORGE + SDK on `ls20`** (50-action budget):
+  - Result: `levels_completed=1`, `win_levels=7`, action histogram across [1,2,3,4]. **Random / Greedy got 0 levels in the same budget — the FORGE BFS solver is a real win.**
   - Wall-clock: 130.5s on CPU torch, 132.6s on CUDA torch — **GPU offers no speedup** because the dominant cost is BFSSolver (`copy.deepcopy(game)` + `perform_action()` thousands of times in pure Python+numpy). The CNN (ForgeNet, 4 conv layers, batch=1) is tiny relative to BFS.
 - **Docker / H100 parity decision** (asked the user, picked Option 3 = no Docker).
   - The image referenced in `kernel-metadata.json` is `gcr.io/kaggle-private-byod/python@sha256:00377c…` and **returns HTTP 401** (private registry).
@@ -102,18 +172,18 @@
 
 ### Hard-won facts
 - `gcr.io/kaggle-private-byod/python` is private (HTTP 401). The kernel-metadata.json `docker_image` field cannot be honored as-is from outside Kaggle.
-- For ARC-AGI-3 BFS-heavy agents (Ash / FORGE), **GPU is not the bottleneck**. Wall-clock is dominated by the Python-level state-space search (deepcopy + perform_action). GPU helps the CNN inference but that's <5% of total time.
+- For ARC-AGI-3 BFS-heavy agents (FORGE / Trigger-Aware BFS), **GPU is not the bottleneck**. Wall-clock is dominated by the Python-level state-space search (deepcopy + perform_action). GPU helps the CNN inference but that's <5% of total time.
 - WSL2 GPU passthrough with a Windows host driver works **without** Docker — `libcuda.so.1` lives at `/usr/lib/wsl/lib/libcuda.so.1` and torch's cu128 wheels detect it correctly.
-- Ash's `append_frame` does `if hasattr(self, "recorder"): self.recorder.record(...)`. If a base class sets `self.recorder = None`, hasattr returns True and the code crashes on `None.record(...)`. **Leave the attribute unset** in the base class.
+- The upstream `append_frame` does `if hasattr(self, "recorder"): self.recorder.record(...)`. If a base class sets `self.recorder = None`, hasattr returns True and the code crashes on `None.record(...)`. **Leave the attribute unset** in the base class.
 
 ### Files touched
-- Created: `agents/_ash_my_agent_v19.py` (verbatim Ash source, 2055 lines), `agents/ash_agent.py` (adapter), `agents/agent.py` (Agent base stub), `research/ash_notebook/{ash-s-arc-agi-3-agent.ipynb, kernel-metadata.json, ash_my_agent_v19_verbatim.py, ash_notebook_extracted.txt}`.
+- Created: `agents/_forge_v19.py` (verbatim upstream FORGE source, 2055 lines; renamed 2026-04-30 from `_ash_my_agent_v19.py`), `agents/forge_agent.py` (adapter; renamed 2026-04-30 from `ash_agent.py`), `agents/agent.py` (Agent base stub), `research/ash_notebook/{ash-s-arc-agi-3-agent.ipynb, kernel-metadata.json, ash_my_agent_v19_verbatim.py, ash_notebook_extracted.txt}` (captured-artefact directory keeps its original slug for provenance).
 - Modified: `experiments/local_runner.py` (passes arc_env / game_id to agents that accept them).
 - venv state: `torch 2.11.0+cu128` + CUDA 12.8 deps (~3 GB).
 
 ### Next steps
-- **exp002** — variance probe: run Ash + SDK on ls20 across 5 seeds with `--max-actions 200` to estimate per-game variance and see how high `levels_completed` climbs with a real budget.
-- Decide whether to try a non-Ash baseline next (Just-Explore / MCTS / GooseBumps) or focus on improving Ash's BFS (per-game heuristics, better hidden-field detection).
+- **exp002** — variance probe: run FORGE + SDK on ls20 across 5 seeds with `--max-actions 200` to estimate per-game variance and see how high `levels_completed` climbs with a real budget.
+- Decide whether to try a non-FORGE baseline next (Just-Explore / MCTS / GooseBumps) or focus on improving the FORGE BFS (per-game heuristics, better hidden-field detection).
 - If a future agent actually needs an H100-class GPU for inference, revisit the Kaggle-image plan.
 
 ---
@@ -136,7 +206,7 @@
   - `MockFrame` dataclass for the offline mock backend.
   - `Agent` Protocol for static type-checking against the runner's loop.
 - `agents/random_agent.py` and `agents/greedy_explore_agent.py` now return `GameAction` enums and filter by `frame.available_actions`. Greedy hashes frames numpy-aware so it works on both backends.
-- `agents/ash_agent.py` placeholder updated to the new contract; still raises `NotImplementedError`.
+- `agents/forge_agent.py` placeholder updated to the new contract; still raises `NotImplementedError`.
 - `experiments/local_runner.py` rewritten to:
   - Use `env.observation_space` + `env.step(action, data=..., reasoning=None)` for the SDK backend.
   - Produce `MockFrame` objects for the offline mock backend so agents are backend-agnostic.
@@ -159,7 +229,7 @@
 - **SDK / GreedyExploreAgent on ls20**: 50 actions, no levels completed (50 actions is too short to learn ls20; baseline behaviour).
 
 ### Next steps (D2 onwards)
-1. **exp002 — Ash variance probe**: Now that we have a working local harness, port `agents/ash_agent.py` from the Ash notebook (Just-Explore-style heuristics) and verify locally on `ls20` + `ft09` before submitting.
+1. **exp002 — FORGE variance probe**: Now that we have a working local harness, port `agents/forge_agent.py` from the upstream notebook (Just-Explore-style heuristics) and verify locally on `ls20` + `ft09` before submitting.
 2. Add a `--multi-game` flag to local_runner that loops over all 25 games to measure rough RHAE.
 3. Consider adding a `Recorder`-style replay capture so we can reproduce specific failure modes offline.
 
@@ -199,30 +269,30 @@
 ### Next steps (D1 onwards)
 1. Migrate `agents/random_agent.py` and `agents/greedy_explore_agent.py` to emit integer action IDs (0-7) and consume the real SDK observation/state shape.
 2. Wire `experiments/local_runner.py` to call `env.step(int_action)` and parse `step()` return tuple correctly.
-3. Once SDK round-trip is green on `ls20`, port `agents/ash_agent.py` from the Ash notebook (Just-Explore + heuristics).
-4. Submit exp002 (Ash variance probe) to lock down LB stddev.
+3. Once SDK round-trip is green on `ls20`, port `agents/forge_agent.py` from the upstream notebook (Just-Explore + heuristics).
+4. Submit exp002 (FORGE variance probe) to lock down LB stddev.
 
 ---
 
 ## 2026-04-29 (later) — Baseline anchored at 0.19
 
 ### What we did
-- User confirmed an existing Kaggle submission: a vanilla fork of **Ash's ARC-AGI-3 Agent** scored **LB 0.19, rank 398**.
+- User confirmed an existing Kaggle submission: a vanilla fork of an upstream public **FORGE-v19** notebook scored **LB 0.19, rank 398** (see `NOTICE` for upstream attribution).
 - Locked in **0.19 as the project baseline anchor** (replacing the assumed 0.25 Stochastic Goose target).
-- Created `experiments/exp001_baseline_ash/` with `README.md`, `score.txt` (0.19), `rank.txt` (398).
+- Created `experiments/exp001_baseline_forge/` (renamed 2026-04-30 from `exp001_baseline_ash/`) with `README.md`, `score.txt` (0.19), `rank.txt` (398).
 - Re-numbered Phase-0 in `EXPERIMENTS.md` and `PLAN.md`:
-  - exp001 = Ash baseline (DONE)
-  - exp002 = Ash variance probe (resubmit 2× to estimate stddev) (D1, D2)
+  - exp001 = FORGE baseline (DONE)
+  - exp002 = FORGE variance probe (resubmit 2× to estimate stddev) (D1, D2)
   - exp003 = Just-Explore baseline (D3)
   - exp004 = local runner + agents/ skeleton (D4, no Kaggle slot)
   - exp005+ = Phase 1 reproductions (BFS, StochasticGoose CNN, Hybrid)
 
 ### Findings worth remembering
-1. **−0.23 reproduction gap**: the Ash notebook is advertised at ~0.42 public, we got 0.19. Possible causes (in order of likelihood):
+1. **−0.23 reproduction gap**: the upstream FORGE-v19 notebook is advertised at ~0.42 public, we got 0.19. Possible causes (in order of likelihood):
    - Stochastic agent + unlucky seed → fixed by exp002 best-of-N.
    - Cherry-picked / best-of-N number originally → expected scoring closer to 0.19–0.30.
    - Eval set has been hardened (more games added) since publication.
-2. **The variance probe (exp002) is the highest-value next experiment** — it determines whether re-using Ash's-as-platform is worthwhile or whether we must build our own from scratch.
+2. **The variance probe (exp002) is the highest-value next experiment** — it determines whether re-using the FORGE notebook as a platform is worthwhile or whether we must build our own from scratch.
 
 ### Gotchas surfaced
 - The leaderboard MHTML snapshot only captured ranks 1–373; rank 398 wasn't in it. (The user confirmed score directly.)
@@ -231,16 +301,16 @@
 ### Decisions
 - All downstream experiment targets recomputed as Δ over 0.19 (not 0.25).
 - Phase 0 expanded from 3 days → 4 days to absorb the variance probe before pivoting.
-- exp002 will resubmit Ash's notebook **identically twice** before any agent code changes.
+- exp002 will resubmit the forked FORGE notebook **identically twice** before any agent code changes.
 
 ### Next steps (today / tomorrow)
 - [x] Wrote `experiments/local_runner.py` (offline smoke harness with mock + SDK fallback).
-- [ ] Build `agents/` package skeleton: `random_agent.py`, `greedy_explore_agent.py`, `ash_agent.py` (port of forked notebook).
-- [ ] D1: resubmit Ash unchanged → record `s2` in `exp002_ash_variance_probe/scores.json`.
+- [ ] Build `agents/` package skeleton: `random_agent.py`, `greedy_explore_agent.py`, `forge_agent.py` (port of forked notebook).
+- [ ] D1: resubmit FORGE unchanged → record `s2` in `exp002_forge_variance_probe/scores.json`.
 
 ### Open questions (carried forward)
 - Same as 2026-04-29 (bootstrap) entry below — none resolved yet.
-- New: what was the **timestamp + dataset version** of the Ash notebook fork? Pin it so exp002 uses identical inputs.
+- New: what was the **timestamp + dataset version** of the FORGE notebook fork? Pin it so exp002 uses identical inputs.
 
 ---
 
@@ -259,7 +329,7 @@
 ### Findings worth remembering
 1. **Action efficiency, not levels, drives the score** (RHAE squares the per-level ratio). Solving fewer levels with elite efficiency can outscore solving more levels sloppily.
 2. **The 0.66–0.68 cluster at the LB top is achievable with non-LLM methods** — Just-Explore alone got 12/25 levels in the dev preview.
-3. **Ash's 0.42 notebook** is the highest publicly-shared starting point. Forking + extending it is a low-risk Day-3 plan.
+3. **The FORGE-v19 notebook (advertised 0.42)** is the highest publicly-shared starting point. Forking + extending it is a low-risk Day-3 plan.
 4. **The Kaggle-eval is fully offline** — RGB-Agent / OpenCode style approaches must be rebuilt with a *local quantized LLM* (Qwen2.5-7B GGUF) bundled as a Kaggle Dataset.
 5. The 2026-03 release of the **`ARC-AGI-3-Agents v0.9.3` API** renames `score → levels_completed` and `win_score → win_levels`. Watch for older notebooks still using the old fields.
 

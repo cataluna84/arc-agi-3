@@ -28,12 +28,12 @@ upstream projects, each of which retains its own copyright and license:
   Copyright (c) 2024-2026 The ARC Prize Foundation
   https://github.com/arcprize/ARC-AGI-3-Agents
 
-* Ash's ARC-AGI-3 Agent (FORGE v19) - the upstream Kaggle notebook our
-  agents/_ash_my_agent_v19.py is a verbatim port of
+* FORGE v19 baseline (upstream Kaggle notebook)
   Copyright (c) 2026 Ashvin Singh
-  Used by reference under Kaggle's notebook-fork mechanism. The verbatim
-  cell is preserved unmodified at agents/_ash_my_agent_v19.py; local
-  adaptations live in agents/ash_agent.py.
+  Used by reference under Kaggle's notebook-fork mechanism.
+  Our agents/_forge_v19.py is a verbatim cell-1 port of the upstream
+  notebook, preserved unmodified to satisfy attribution requirements.
+  Local adaptations live in agents/forge_agent.py.
   https://www.kaggle.com/code/ashvinsingh/ash-s-arc-agi-3-agent
 
 * Kaggle CLI / kagglehub

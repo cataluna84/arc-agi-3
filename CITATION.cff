@@ -10,7 +10,7 @@ authors:
 abstract: >-
   arc-agi-3 is a public lab notebook for the ARC Prize 2026 - ARC-AGI-3
   Kaggle Code Competition. It contains agent implementations (random,
-  greedy-explore, an Ash FORGE-v19 port, and a Qwen3.6-35B-A3B
+  greedy-explore, a vendored FORGE-v19 port, and a Qwen3.6-35B-A3B
   vision-language agent), an offline smoke runner, Kaggle CLI
   automation, and a daily research log capturing the project's
   decisions, experiments, and leaderboard results.
