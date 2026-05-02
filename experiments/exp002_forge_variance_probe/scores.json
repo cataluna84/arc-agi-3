@@ -1,15 +1,50 @@
 {
   "experiment": "exp002_forge_variance_probe",
-  "notebook": "FORGE v19 baseline (vanilla fork of upstream)",
-  "runs": [
+  "kernel_slug": "cataluna84/ash-s-arc-agi-3-agent",
+  "competition": "arc-prize-2026-arc-agi-3",
+  "decision_rule": {
+    "if_max_s2_s3_ge_0_30": "variance-dominated; use multi-seed best-of-N as free LB lift",
+    "if_max_s2_s3_lt_0_25": "structural floor near 0.19; pivot to other agents per SPEC_4WEEKS.md"
+  },
+  "data_points": [
     {
-      "run_index": 1,
-      "date": "2026-04-29",
+      "label": "s1",
+      "kernel_version": 1,
+      "submitted_at_utc": "2026-04-29T02:26:19Z",
+      "status": "COMPLETE",
       "score": 0.19,
       "rank": 398,
-      "from_exp": "exp001_baseline_forge",
-      "notes": "Initial submission; user-recorded."
+      "rank_total": null
+    },
+    {
+      "label": "s2",
+      "kernel_version": 2,
+      "submitted_at_utc": "2026-05-01T18:32:55Z",
+      "status": "COMPLETE",
+      "score": 0.24,
+      "rank": 315,
+      "rank_total": 715,
+      "tied_cluster_size": 27,
+      "tied_rank_range": "291-317"
     }
   ],
-  "_pending": ["run #2 (D1)", "run #3 (D2)"]
+  "summary_when_resolved": {
+    "n": 2,
+    "min": 0.19,
+    "max": 0.24,
+    "mean": 0.215,
+    "range": 0.05,
+    "verdict": "marginal-variance",
+    "verdict_detail": "max=0.24 is below the 0.30 'variance-dominated' threshold AND below the 0.25 'pivot' threshold by 0.01. The +0.05 (+26% relative) range across 2 same-code runs suggests *some* run-to-run variance but not enough to justify multi-seed best-of-N as the primary lift. Per SPEC_4WEEKS decision rule we proceed with D4 Stochastic Goose port; a third probe (s3) is optional and could be deferred until a slot is genuinely empty.",
+    "leaderboard_context": {
+      "as_of_utc": "2026-05-02T13:52:04Z",
+      "total_teams": 715,
+      "top_score": 0.68,
+      "median_score_estimate": 0.21,
+      "noise_band_0_17_to_0_28": "approx 250 teams (~35% of all teams cluster in 0.17-0.28)",
+      "ours_score_band_0_24": "27 teams tied; rank 291-317 all at 0.24",
+      "gap_to_top_5_public_notebook_0_42": 0.18,
+      "gap_to_lb_top_0_68": 0.44
+    }
+  }
 }

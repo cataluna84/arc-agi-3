@@ -18,6 +18,13 @@ environment_files/
 # Local smoke-run outputs
 runs/
 
+# Pulled Kaggle kernel outputs (per-experiment _pulled/ dirs)
+experiments/**/_pulled/
+
+# Stray pip --target install of pillow (artifact of kaggle kernels output download)
+_pillow_pkg/
+_transformers_pkg/
+
 # Compiled wheels (kaggle bundles ship as .whl in data/)
 *.whl
 

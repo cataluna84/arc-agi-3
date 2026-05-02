@@ -1,0 +1,33 @@
+{
+  "experiment": "exp005_trigger_aware_bfs",
+  "kernel_slug": "cataluna84/trigger-bfs-comp-arc-agi-3",
+  "competition": "arc-prize-2026-arc-agi-3",
+  "agent_class": "agents.trigger_bfs_agent:TriggerBFSAgent",
+  "approach": "state-graph dedup + uniform-random over untried; no CNN/torch",
+  "decision_rule": {
+    "if_lb_gt_0_24": "state-graph dedup is genuinely helping; build on it per SPEC §1.5 (D7+)",
+    "if_lb_in_0_18_0_24": "state graph helps modestly; not enough alone -- add BFS replay (SPEC D7)",
+    "if_lb_lt_0_18": "regression vs random -- diagnose via dev kernel logs"
+  },
+  "data_points": [
+    {
+      "label": "s1",
+      "kernel_version": 1,
+      "submitted_at_utc": "2026-05-02T14:24:01Z",
+      "status": "PENDING",
+      "score": null,
+      "rank": null
+    }
+  ],
+  "local_smoke": {
+    "pytest": "5/5 PASS (tests/test_state_graph.py)",
+    "smoke_22": "22/22 PASS (scripts/trigger_bfs_smoke_local.py)",
+    "sweep_25_games_max1000_seed0": {
+      "total_levels": 1,
+      "wins": 0,
+      "games_with_at_least_one_level": 1,
+      "winning_game": "ft09 (1 level in 116 actions)",
+      "comparison_random_agent": "1/25 (r11l, 1 level in 29 actions)"
+    }
+  }
+}

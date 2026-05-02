@@ -5,6 +5,8 @@
 > **Constraint**: 1 Kaggle submission/day. Each daily slot must move the score, build a foundation, or kill a hypothesis.
 >
 > **Locked-in baseline**: the user's existing submission (vanilla fork of an upstream public **FORGE v19** Kaggle notebook) scored **0.19** at rank 398 on 2026-04-29. Every "Δ over baseline" downstream is measured against **0.19**, not 0.25 nor 0.42. See `NOTICE` for upstream attribution.
+>
+> **D3+ canonical spec**: see `experiments/SPEC_4WEEKS.md` (drafted 2026-05-01) for the full file/code-level day-by-day plan from D3 through D28. The phase-level summary below is preserved for context; the SPEC overrides any conflict on day-level detail.
 
 ---
 
@@ -30,172 +32,63 @@ See: `experiments/exp001_baseline_forge/`.
 
 **DoD**: a second LB data point recorded; absolute diff `|s2 - 0.19|` logged in `.factory/memories.md`.
 
-### [ ] D2 (2026-04-30): FORGE variance probe #2 (exp002) **OR** Qwen agent submission (exp004)
+### [x] D2 (2026-04-30): Track B chosen — Qwen3.6-35B-A3B comp submission (exp004) — slot consumed
 
-The two tracks compete for tomorrow's daily slot. Decision is made the morning of D2 once `s2` from D1 is visible:
+**Result**: LB **0.00**. Track B failed; postmortem in `experiments/exp004_qwen_agent/POSTMORTEM.md` (5 root causes: greedy decode, vision prefill bottleneck, no state memory, no change feedback, no ACTION6 path).
 
-- **Track A — FORGE variance probe #2** (consume slot): only sensible if `s2` is unexpectedly high (≥ 0.30) or unexpectedly low (≤ 0.10). Otherwise we already have enough information from `(0.19, s2)` to decide.
-- **Track B — exp004 Qwen3.6-35B-A3B agent** (consume slot): submit ONLY if exp004 dev-kernel smoke shows healthy results overnight (per-action latency < 10 s, ≥ 1 level completed on `ls20`). Otherwise dev-kernel iteration continues with no slot used.
-- **Track C — defer slot, accelerate exp004**: if neither A nor B is ready, hold the slot and spend the day finishing exp004 dev-kernel iteration. We never have to use the slot.
+### [x] D3 (2026-05-01): Track A FORGE variance probe — slot consumed; **LB 0.24** (rank 315/715)
 
-**DoD**: by end of D2, either (a) `s3` is in `memories.md` for variance, or (b) a Qwen submission has its own LB number, or (c) the day's notes record why we held the slot and what we built instead.
+**Submitted**: `kaggle competitions submit arc-prize-2026-arc-agi-3 -k cataluna84/ash-s-arc-agi-3-agent -v 2 -f submission.parquet`. Result: **0.24** (+0.05 vs 0.19 baseline). Verdict per scores.json decision rule: max(0.19, 0.24) < 0.25 -> structural-floor reading; pivot to other agents per SPEC_4WEEKS.md.
 
-### exp004 milestones (parallel to the slot-using D1-D8 track; runs on dev kernels)
+**Also**: drafted `research/04_strategy_reset_2026-05-01.md` and `experiments/SPEC_4WEEKS.md` (D3-D28 detailed spec). All future days follow SPEC_4WEEKS.
 
-- **D2 morning**: create `cataluna84/arc-agi-3-agents-pkg` Kaggle Dataset bundling our local `agents/` directory (one-time, < 1 min upload).
-- **D2 (afternoon)**: push `experiments/exp004_qwen_agent/bundle_qwen_kernel/` → wait ~45-60 min → verify private Dataset `cataluna84/qwen3-6-35b-a3b-bf16` exists with all 26 safetensors shards (~70 GB).
-- **D2 (evening) → D3**: push `experiments/exp004_qwen_agent/dev_kernel/` → review `qwen_smoke.json`. **Pass criteria**: model loads in BF16 on H100 without OOM, per-action latency < 10 s, ≥ 90% emitted actions are in `available_actions`, ≥ 1 level completed on `ls20` within 200 actions.
-- **D3 / D4**: iterate on prompt template if smoke results are mediocre. Each iteration reuses the dev kernel — no daily slot consumed.
-- **D5 (latest)**: promote the dev kernel to a competition kernel; submit; record LB number. **Decision criterion** for promoting: dev-kernel smoke shows ≥ 1 level on at least 3 of 5 sampled training games. If exp004 LB ≥ 0.25 we keep iterating on this track; if < 0.20 we pivot to exp005 (Qwen3-Next-80B-A3B-INT4 swap; same code, different weights).
+### [x] D4 (2026-05-02): Combined D5+D6 — Trigger-BFS + StateGraph submitted as ablation
 
-### [ ] D3: Just-Explore baseline (exp003) — orthogonal reference
+**User direction** at D4 morning AskUser: Option B (skip Goose, jump to D5 Trigger-BFS), strict smoke, bundle state_graph from D6. Then Option C (submit even though local sweep showed regression risk).
 
-- [ ] Fork "ARC3 Sample Submission - Just Explore"; submit unchanged.
-- [ ] Read agent loop top-to-bottom; lift the state-graph code into `agents/just_explore.py` for reuse in exp005+.
+**Built**: `agents/state_graph.py`, `agents/trigger_bfs_agent.py`, `tests/test_state_graph.py`, `scripts/trigger_bfs_smoke_local.py`, `experiments/exp005_trigger_aware_bfs/comp_kernel/*`.
 
-**DoD**: score recorded; agent loop annotated.
+**Local sweep**: 1/25 games clear level 1 (ft09); RandomAgent also gets 1/25 (r11l). Strict ls20 gate not met (neither random nor trigger-bfs passes ls20).
 
-### [x] D4: Local runner + agents/ skeleton (no Kaggle slot)
+**Submitted**: kernel `cataluna84/trigger-bfs-comp-arc-agi-3` v1 at 14:24 UTC. Status: PENDING. Predicted LB 0.18-0.22.
 
-- [x] `experiments/local_runner.py` drafted with mock + SDK fallback
-- [x] `agents/random_agent.py`, `agents/greedy_explore_agent.py`, `agents/forge_agent.py` (port of forked notebook), `agents/qwen_agent.py` (Qwen3.6-35B-A3B VLM)
-- [x] `python experiments/local_runner.py --agent agents.random_agent:RandomAgent --games ls20-mock` exits 0
-- [x] `python experiments/local_runner.py --agent agents.forge_agent:ForgeAgent --use-sdk --games ls20` reaches `levels_completed=1` in 50 actions
+**Net daily slot tally**:
+- D0 (2026-04-29): 0.19 (FORGE v1)
+- D1 (placeholder; consumed by D2 logic) — slot held
+- D2 (2026-04-30): 0.00 (Qwen Track B)
+- D3 (2026-05-01): 0.24 (FORGE v2, Track A variance)
+- D4 (2026-05-02): PENDING (exp005 Trigger-BFS ablation)
 
-**DoD**: agents importable; runner exits 0; QwenAgent local smoke (`scripts/qwen_agent_smoke_local.py`) passes 22/22 checks without GPU.
+### [ ] D5+ (2026-05-03 onward): see `experiments/SPEC_4WEEKS.md`
 
-> Note: D4 was originally scoped as "build the runner + 3 baseline agents". It absorbed the Qwen agent build during the late-D0/early-D1 sprint. Real exp004 (Qwen submission) is tracked under the **exp004 milestones** above and competes with D2 for the daily slot.
+The day-by-day plan from D5 through D28 lives in `experiments/SPEC_4WEEKS.md`.
+That document is the canonical source for: file paths, code patterns,
+smoke-test commands, submit decisions, exit criteria, rollback plans,
+and the slot-accounting table.
 
----
+The decision tree for D5 (2026-05-03) depends on the exp005 LB result:
 
-## Phase 1 — Public-notebook reproductions (Days 5–8)
+- **If exp005 LB > 0.24**: state-graph dedup is genuinely helping; build BFS
+  replay (SPEC §1.5 D7) on top of TriggerBFSAgent. Target LB 0.32-0.35.
+- **If 0.18 < exp005 LB <= 0.24**: state graph helps modestly but not
+  enough on its own. Add frame-change CNN + BFS replay simultaneously
+  (combined SPEC D7 + D9). Target LB 0.30-0.36.
+- **If exp005 LB <= 0.18**: regression vs random; diagnose via dev kernel
+  logs and revert to FORGE for D5 slot. Recovery path: re-run TriggerBFSAgent
+  with action-priority disabled or seed-sweep.
 
-### [ ] D5: Reproduce FORGE Trigger-Aware BFS (target 0.32–0.35)
+> The legacy `Phase 1 / Phase 2 / Phase 3 / Phase 4` sections that
+> previously enumerated D5..D20 with target scores have been superseded
+> by `experiments/SPEC_4WEEKS.md` (see header note above). Phase-level
+> Definition of Done targets remain valid (Phase 1 = 0.35, Phase 2 = 0.45,
+> Phase 3 = 0.55, Phase 4 = 0.70) and are referenced below.
 
-Read 0.39 + 0.35 notebooks. Re-implement minimally:
+### exp004 milestones (legacy, completed 2026-04-30)
 
-- Frame hashing (xxhash or blake2 over (state_grid, available_actions))
-- BFS frontier ordered by:
-  - **untried action count desc**
-  - **trigger score** (Δpixels, Δscore, new colors)
-  - **distance to nearest unexplored state** (Just-Explore style)
-- State-graph reset on level transitions (avoid the `dolphin` bug)
-
-**DoD**: ≥ 0.30 on Kaggle (Δ ≥ +0.11 over 0.19 baseline).
-
-### [ ] D6: Reproduce StochasticGoose CNN (target 0.25–0.32)
-
-- 16-channel one-hot 64×64 input → 4-layer CNN (32→64→128→256)
-- Action head (5-way) + 64×64 conv coordinate head
-- Binary loss: did frame change? Hash-deduped buffer up to 200k samples
-- Reset model + buffer per level
-
-**DoD**: ≥ 0.32 on Kaggle (Δ ≥ +0.13).
-
-### [ ] D7: Hybrid `BFS + CNN-predicted action change` (target 0.35+)
-
-Combine D5 and D6: use CNN to score each action's change probability, then expand BFS frontier biased by that probability. Falls back to uniform priority when CNN is cold.
-
-**DoD**: ≥ 0.35 on Kaggle (Δ ≥ +0.16).
-
----
-
-## Phase 2 — Compose toward 0.45+ (Days 9–14)
-
-### [ ] D8: Push past the FORGE 0.42 advertised ceiling
-
-The user's FORGE fork landed at 0.19 (heavy reproduction gap from the upstream's advertised 0.42). After exp002 variance probe, we know if FORGE is a useful platform; if so, layer on:
-- per-level model reset
-- ACTION6 saliency from segmentation
-- frame-delta priority
-
-**DoD**: ≥ 0.40 on Kaggle (Δ ≥ +0.21).
-
-### [ ] D9: Add **per-game adaptive budget** (efficiency optimization)
-
-- Detect whether agent has progressed in last K actions.
-- If stuck > K (e.g. 200 actions on a level), apply **restart-with-noise** or **switch policy**.
-- Save action budget for late levels (RHAE weights levels by index).
-
-**DoD**: same level-completion as D8 but with -10% actions on average → score lift via efficiency.
-
-### [ ] D10: **Object segmentation** + **clickable-object library**
-
-- Extract connected components per color.
-- Maintain *symbolic* state (objects + relations + bounding boxes).
-- Replace ACTION6(x,y) random with ACTION6(centroid_of_object).
-
-**DoD**: ≥ 0.43, the FORGE advertised ceiling broken.
-
-### [ ] D11: **MCTS with neural prior** (UCT + StochasticGoose CNN as policy prior)
-
-- Tree search with PUCT(s,a) = Q(s,a) + c·prior_CNN(s,a)·sqrt(N_parent)/(1+N_child)
-- Bound rollouts by remaining action budget
-- Reuse subtree on action commit
-
-**DoD**: ≥ 0.45.
-
-### [ ] D12: **DreamerV3 lite** — RSSM world-model rolled in latent (5–20M params, fits H100)
-
-- Train online on every (frame, action, next_frame) transition
-- Use latent imagination for 8-step planning
-- Use *intrinsic curiosity* (prediction error) to drive exploration
-
-**DoD**: ≥ 0.45 (parity with MCTS) but **better on long-horizon games**.
-
----
-
-## Phase 3 — Push toward 0.55+ (Days 13–22)
-
-### [ ] D13: **Test-Time Training (TTT)** on transitions of current game
-
-- Per-game LoRA adapter on top of frozen 1B–3B Qwen/DeepSeek backbone
-- Fine-tune in-flight on first 100 transitions, then plan
-- Inspired by NVIDIA's NVARC win on ARC-AGI-2
-
-**DoD**: ≥ 0.50.
-
-### [ ] D14: **Program/DSL synthesis** (Stitch-style library learner)
-
-- Define a grid DSL (move_object, fill, mirror, swap, copy_region…)
-- BFS with MDL prior over short programs explaining observed transitions
-- Discover rule from level 1 → reuse in higher levels
-
-**DoD**: solves at least one *deep* level (5+) on a public game.
-
-### [ ] D15: **Slot-attention object-centric world model**
-
-- Slot-Attention encoder → object slots → graph net for relations → next-state predictor
-- Combines well with D10 object library
-
-**DoD**: ≥ 0.52.
-
-### [ ] D16: **Causal counterfactual reasoning**
-
-- Maintain belief over which (object, action) edges modify game state.
-- Plan to test the most informative edge first (active-learning).
-
-**DoD**: ≥ 0.55.
-
----
-
-## Phase 4 — Beat the LB (Days 23+)
-
-### [ ] D17: **Ensemble of orthogonal agents**
-
-Per-game, run all of: BFS+CNN, MCTS, DreamerV3-lite, DSL synthesizer in parallel/sequence. Pick the first-finishing winning policy. Use action efficiency as tie-breaker.
-
-### [ ] D18: **Offline-RL warm-start** from replays of all 25 public games + community replays from `three.arcprize.org/replay/...`
-
-Pre-train DreamerV3 / Decision Transformer on action–state traces of public games, then test-time fine-tune.
-
-### [ ] D19: **Local LLM-as-orchestrator** (Qwen 2.5 7B GGUF in offline notebook)
-
-- Use small local LLM only for "what should the next exploration target be?"
-- All low-level actions still come from the symbolic+neural agents
-- Mirrors RGB-Agent architecture but offline
-
-### [ ] D20+: iterate on top-2 ideas based on which got the highest Δ-score.
+The Qwen3.6-35B-A3B Track B is closed; postmortem at
+`experiments/exp004_qwen_agent/POSTMORTEM.md`. The `cataluna84/qwen3-6-35b-a3b-bf16`
+Kaggle Dataset (~72 GB) is parked, not deleted, in case we revive Qwen
+as a Tier-C verifier per `research/04_strategy_reset_2026-05-01.md` §6.
 
 ---
 
@@ -209,6 +102,17 @@ Pre-train DreamerV3 / Decision Transformer on action–state traces of public ga
   - [ ] Capture LB score, game-by-game scorecard, and any tracebacks → `.factory/memories.md`
   - [ ] If score regressed > 0.02, immediately roll back and bisect
 
+## Submission slot tally (running)
+
+| Day | Date       | Kernel slug                                  | Predicted | LB     | Rank        | Notes                          |
+|----:|:-----------|:---------------------------------------------|----------:|-------:|:------------|:-------------------------------|
+|  D0 | 2026-04-29 | `cataluna84/ash-s-arc-agi-3-agent` v1        |       — | 0.19   | 398/—       | FORGE v19 fork anchor          |
+|  D1 | 2026-04-29 | (held)                                       |       — | —      | —           | Slot held; absorbed by D2 logic |
+|  D2 | 2026-04-30 | `cataluna84/qwen-comp-arc-agi-3` v1          |     ~0.0 | 0.00   | —           | Qwen Track B — postmortem      |
+|  D3 | 2026-05-01 | `cataluna84/ash-s-arc-agi-3-agent` v2        |    ~0.19 | 0.24   | 315/715     | FORGE v2, +0.05 variance lift  |
+|  D4 | 2026-05-02 | `cataluna84/trigger-bfs-comp-arc-agi-3` v1   | 0.18-0.22 | PENDING | —          | exp005 Trigger-BFS ablation    |
+|  D5+| 2026-05-03+| (TBD per exp005 LB result)                   | 0.30-0.36 | —      | —           | See `experiments/SPEC_4WEEKS.md` |
+
 ## Definition of Done for each phase
 
 - **Phase 0**: 0.19 baseline anchored; variance of the upstream FORGE notebook understood; local runner working. Done.
@@ -216,3 +120,11 @@ Pre-train DreamerV3 / Decision Transformer on action–state traces of public ga
 - **Phase 2**: ≥ 0.45 on Kaggle (Δ ≥ +0.26).
 - **Phase 3**: ≥ 0.55, top-10 on public LB (Δ ≥ +0.36).
 - **Phase 4**: ≥ 0.70, beating current LB top (Δ ≥ +0.51).
+
+## Pointers
+
+- Detailed D3-D28 plan: `experiments/SPEC_4WEEKS.md`
+- Strategy + literature: `research/04_strategy_reset_2026-05-01.md`
+- Daily memories (top of file is most recent): `.factory/memories.md`
+- Hard-won gotchas (15 items): `.factory/rules/gotchas.md`
+- Pre-submission verification (V1..V11): `.factory/verify.md`

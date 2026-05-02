@@ -2,6 +2,19 @@
 
 > Run these *every time* before burning a Kaggle submission slot.
 > If any block fails, fix the cause **before** uploading.
+>
+> **Quick path** for a routine D5+ submission (skip V1-V6 once they have
+> run green once on this machine):
+>
+> ```bash
+> uv run ruff check . && uv run ruff format --check .
+> uv run pytest tests/ -v
+> uv run python scripts/<your_agent>_smoke_local.py
+> uv run python experiments/local_runner.py \
+>     --agent agents.<your_agent>:<YourClass> \
+>     --use-sdk --games <2-3 game ids> --max-actions 300
+> # All green? Then proceed to V10 + V7.
+> ```
 
 ---
 
@@ -115,12 +128,53 @@ print('CUDA available:', torch.cuda.is_available(), torch.cuda.get_device_name(0
 
 Expected: every assertion passes, GPU shows "H100" if H100 attached.
 
-## V7. Post-submission verification
+## V7. Submission via Kaggle CLI (code competition pattern)
 
-After committing the notebook:
+> **Critical CLI gotcha (#15)**: there is **no** `kaggle competitions submit-code`
+> subcommand in the pinned CLI 2.1.0. Several public docs reference it.
+> Use plain `submit` with `-k <kernel> -v <version> -f <output_file>`.
 
-1. Open the **Submissions** tab on the Kaggle competition page.
-2. Confirm "Public score" appears within ~30 minutes.
+```bash
+# Pre-flight: confirm yesterday's slot is closed (need a >= 24 h gap)
+.venv/bin/kaggle competitions submissions arc-prize-2026-arc-agi-3 | head -3
+
+# 1. Push your kernel (this just creates the version; does NOT submit)
+.venv/bin/kaggle kernels push -p experiments/expNNN_<slug>/comp_kernel/
+
+# 2. Wait for the kernel to finish save-mode run (typically 20-60 s for
+#    pure-Python agents; 5-30 min for agents with model loading).
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    s=$(.venv/bin/kaggle kernels status cataluna84/<your-kernel-slug> 2>&1 | tail -1)
+    echo "[poll $i] $s"
+    if echo "$s" | grep -qE "(COMPLETE|ERROR|CANCEL)"; then break; fi
+    sleep 30
+done
+
+# 3. Sanity-check the kernel output (save-mode log + dummy parquet)
+mkdir -p /tmp/kernel_out
+.venv/bin/kaggle kernels output cataluna84/<your-kernel-slug> -p /tmp/kernel_out
+ls -la /tmp/kernel_out/                    # expect submission.parquet (~2.6 KB save-mode placeholder)
+tail -20 /tmp/kernel_out/<your-kernel-slug>.log    # confirm no tracebacks
+
+# 4. Submit (BURNS DAILY SLOT — exactly once per 24 h on Kaggle)
+.venv/bin/kaggle competitions submit arc-prize-2026-arc-agi-3 \
+    -k cataluna84/<your-kernel-slug> \
+    -v <kernel-version-number> \
+    -f submission.parquet \
+    -m "expNNN <date> <one-line-rationale>"
+
+# 5. Confirm acceptance
+.venv/bin/kaggle competitions submissions arc-prize-2026-arc-agi-3 | head -3
+# Expect a new row with status PENDING and your description.
+```
+
+LB result lands ~24 h later. Until then status is PENDING.
+
+After the LB result lands:
+
+1. Open the **Submissions** tab on the Kaggle competition page (or use
+   `kaggle competitions submissions` to see it from the CLI).
+2. Confirm "Public score" appears.
 3. Compare to the previous best in `.factory/memories.md`.
 4. If `Δscore < -0.02`, immediately:
    - **Rollback**: re-submit the previous best notebook version
@@ -130,6 +184,9 @@ After committing the notebook:
    - Per-game breakdown (download from the Submissions detail view)
    - Top 3 failure modes observed (look at the replays)
    - Next-step decisions
+6. Update `experiments/expNNN_<slug>/scores.json` with the new
+   `data_points[]` entry; populate `summary_when_resolved` if it's the
+   final probe of an experiment.
 
 ## V8. Reproducibility log
 
@@ -182,3 +239,78 @@ python3 experiments/local_runner.py \
 ```
 
 Expected: every block exits 0; final `local_runner` returns valid stats (WIN or GAME_OVER, not crash).
+
+## V10. Trigger-BFS / state-graph smoke (post-D4)
+
+The state-graph foundation introduced 2026-05-02 must stay green for any
+agent that depends on `agents.state_graph`. Run after every change to
+`agents/state_graph.py`, `agents/trigger_bfs_agent.py`, or any future
+agent that imports `StateGraph`/`hash_frame`.
+
+```bash
+# State-graph unit tests (5 tests, expect 5/5 PASS)
+uv run pytest tests/test_state_graph.py -v
+
+# 22-check parity smoke (pure-Python; no GPU; no network)
+uv run python scripts/trigger_bfs_smoke_local.py
+
+# 25-game SDK sweep (small budget; minutes-class)
+uv run python experiments/local_runner.py \
+    --agent agents.trigger_bfs_agent:TriggerBFSAgent \
+    --use-sdk \
+    --games ar25,bp35,cd82,cn04,dc22,ft09,g50t,ka59,lf52,lp85,ls20,m0r0,r11l,re86,s5i5,sb26,sc25,sk48,sp80,su15,tn36,tr87,tu93,vc33,wa30 \
+    --max-actions 300 --seed 0 --quiet-sdk-logs \
+    --json-out /tmp/trigger_bfs_sweep.json
+
+# Quick stats on the sweep
+uv run python -c "
+import json
+d=json.load(open('/tmp/trigger_bfs_sweep.json'))
+games=d['games']
+total=sum(g['levels_completed'] for g in games)
+any_=[g for g in games if g['levels_completed']>=1]
+print(f'25-game sweep: total levels={total}, games with >=1 level={len(any_)}')
+"
+```
+
+Expected (as of 2026-05-02 baseline):
+- pytest: 5 / 5 PASS in <2 s.
+- 22-check smoke: 22 / 22 PASS, mock end-to-end ls20 win in ~21 actions.
+- 25-game sweep: 1 / 25 games clear level 1 (ft09 with seed=0). Net
+  parity with RandomAgent's 1/25 (r11l). If you see 0 / 25, something
+  broke; bisect agent changes.
+
+## V11. scores.json schema (post-D2)
+
+Every submitting experiment owns a `scores.json` file. Validate it with:
+
+```bash
+uv run python -c "
+import json, sys
+from pathlib import Path
+
+bad = []
+for fp in Path('experiments').glob('exp*/scores.json'):
+    d = json.loads(fp.read_text())
+    required = {'experiment','kernel_slug','competition','data_points'}
+    missing = required - set(d)
+    if missing:
+        bad.append((fp, f'missing keys: {missing}'))
+        continue
+    for i, p in enumerate(d['data_points']):
+        for k in ('label','submitted_at_utc','status'):
+            if k not in p:
+                bad.append((fp, f'data_point[{i}] missing {k}'))
+        if p.get('status') == 'COMPLETE' and 'score' not in p:
+            bad.append((fp, f'data_point[{i}] is COMPLETE but score absent'))
+
+if bad:
+    for fp, msg in bad: print(f'FAIL {fp}: {msg}')
+    sys.exit(1)
+print('all scores.json valid')
+"
+```
+
+Expected: `all scores.json valid`. If a probe entry is `COMPLETE` but
+missing a `score`, fill it in from `kaggle competitions submissions ...`
+before merging.

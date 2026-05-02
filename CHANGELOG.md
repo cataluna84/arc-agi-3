@@ -14,6 +14,61 @@ entries under `[Unreleased]` rather than tagged version cuts.
 
 ## [Unreleased]
 
+### Added - 2026-05-02 D4 afternoon (exp005 Trigger-BFS ablation submitted)
+- `agents/state_graph.py`: shared state-graph wrapper for search-based
+  agents. Provides `hash_frame()`, `StateNode`, `StateGraph` with
+  level-transition reset. Foundation for D7-D27 of SPEC_4WEEKS.
+- `agents/trigger_bfs_agent.py`: state-graph + uniform-random-over-
+  untried agent. Pure-Python, no CNN. 22/22 smoke PASS.
+- `tests/test_state_graph.py` (5 tests, all PASS) and `tests/conftest.py`
+  (makes `agents/` importable from pytest).
+- `scripts/trigger_bfs_smoke_local.py`: 22-check parity smoke.
+- `experiments/exp005_trigger_aware_bfs/`: README + scores.json + 6-cell
+  Kaggle comp kernel mirroring the FORGE structure.
+- Kernel `cataluna84/trigger-bfs-comp-arc-agi-3` v1 pushed; submission
+  accepted 14:24 UTC, status PENDING. Predicted LB 0.18-0.22 (random-
+  level baseline; submitted as LB ablation per AskUser Option C).
+
+### Resolved - 2026-05-02 (D3 LB result for Track A variance probe)
+- D3 submission scored **0.24** (vs 0.19 baseline; +0.05 absolute, +26%
+  relative). Status COMPLETE. Final position: rank 315 / 715, top 44%.
+  We sit in a 27-team tied cluster at 0.24 (ranks 291-317).
+- Decision-rule verdict: max(s1=0.19, s2=0.24)=0.24 < 0.25 threshold →
+  structural-floor reading; pivot to other agents per SPEC_4WEEKS.md
+  is confirmed correct. The +26% intra-codebase variance is noted but
+  does not justify multi-seed best-of-N as the primary lever.
+- `experiments/exp002_forge_variance_probe/scores.json` now resolves
+  s2 with full LB context (top score 0.68, public-notebook ceiling 0.42).
+- Kernel artifact verification: `submission.parquet` is a 1-row save-mode
+  placeholder; the 0.24 was scored by Kaggle in COMPETITION_RERUN. Save
+  log clean (16 s wall clock; two benign deps warnings).
+- pyarrow added to the uv-managed venv for parquet inspection.
+
+### Added - 2026-05-01 (D3: strategy reset + Track A FORGE variance probe)
+- `research/04_strategy_reset_2026-05-01.md`: 7-section research-driven
+  strategy reset following Qwen 0.00 LB result. Covers public-LB
+  landscape (0.42 ceiling, 0.25 floor), SDK §0.9.3 scoring math,
+  literature digest (ARC-AGI-3 paper, AXIOM, Go-Explore, ARC-AGI-2
+  winners), Qwen failure analysis, 4-week new plan, 6 augmentation
+  strategies, today's decision, references.
+- `experiments/exp004_qwen_agent/POSTMORTEM.md`: Qwen failure postmortem.
+  5 root causes (greedy decode, vision prefill bottleneck, no state
+  memory, no change feedback, no ACTION6 path) + what-we-keep + lessons.
+- `experiments/SPEC_4WEEKS.md`: detailed D3-D28 implementation spec
+  (~620 lines). Per-day Goal / Files / Implementation pattern / Smoke
+  test / Submit? / Exit criteria / Rollback. 11 submission days
+  scheduled. Cross-cutting concerns (Kaggle Datasets to maintain,
+  augmentation scoreboard, tests, hard constraints) at §5.
+- `experiments/exp002_forge_variance_probe/_pulled/`: auto-pulled
+  upstream kernel by `scripts/resubmit_forge.sh` (gitignored fork copy).
+
+### Submitted - 2026-05-01 (D3 Track A daily slot)
+- `kaggle competitions submit arc-prize-2026-arc-agi-3 -k cataluna84/ash-s-arc-agi-3-agent -v 2 -f submission.parquet`
+  ran clean at 18:32 UTC. Status PENDING; will land as `s2` in
+  `experiments/exp002_forge_variance_probe/scores.json`.
+- Confirmed CLI usage: `submit` is the correct subcommand (with `-k -v`
+  flags for code competitions); there is no `submit-code` in CLI 2.1.0.
+
 ### Added - 2026-04-30 (D2: exp004 Qwen comp submission via CLI)
 - New private Kaggle Datasets:
   - `cataluna84/arc-agi-3-agents-pkg` (164 KB, 7 .py files): mirrored

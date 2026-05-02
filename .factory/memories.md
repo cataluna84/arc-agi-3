@@ -5,6 +5,172 @@
 
 ---
 
+## 2026-05-02 — D4 afternoon: exp005 Trigger-BFS ablation submitted (PENDING)
+
+### What we did
+
+Per user direction at the D4 morning AskUser checkpoint: Option B (skip
+Goose, jump to D5 Trigger-Aware BFS), strict smoke gate, and Option C
+when local results showed regression risk (submit anyway as ablation
+data point).
+
+#### 1. New shared module: agents/state_graph.py (D6 work, bundled)
+- `hash_frame(layers) -> bytes`: 8-byte blake2b digest, deterministic.
+- `StateNode` dataclass: state_hash, visit_count, untried_actions, edges,
+  incoming_change_score, last_levels.
+- `StateGraph`: nodes dict + frontier deque + action_history. Methods:
+  `reset()`, `maybe_reset_for_level(levels) -> bool`, `add_or_get(...)`,
+  `observe(prev, action, next, change_score)`, `record_action(...)`.
+- 5 pytest unit tests in `tests/test_state_graph.py` (hash determinism +
+  distinctness, untried seeding minus RESET, observe drains untried
+  actions and frontier, level transition wipes graph). All PASS.
+- `tests/conftest.py` added so `agents/` is importable from pytest.
+
+#### 2. New agent: agents/trigger_bfs_agent.py
+- Pure-Python state-graph agent. No CNN, no torch.
+- `_trigger_score(p, n, prev_levels, next_levels) = delta_pixels +
+  5*delta_levels + 2*new_colors`.
+- `_sample_click_xy(layers, rng)`: bg-color detection via majority bin
+  count, sample (x, y) from non-bg pixels; fallback uniform.
+- Strategy after several iterations:
+  - First attempt (priority-ordered untried): worse than random in
+    sweep, monotonic ACTION1 because every step's slight frame change
+    re-seeded "untried" with all simple actions.
+  - Second attempt (weighted random + stuck detector): completely
+    broken (0/25 games passed level 1).
+  - Final (random-uniform over untried, fall back to highest-change-
+    score edge, then uniform over all): matches RandomAgent (1/25).
+- Smoke 22/22 PASS via `scripts/trigger_bfs_smoke_local.py`.
+
+#### 3. Strict smoke gate result: NOT MET on ls20
+- Required: levels_completed >= 1 on `ls20` real SDK.
+- Achieved on `ls20`: 0 levels in 1000 actions (terminates GAME_OVER).
+- RandomAgent also fails ls20 (0 levels in 1000 actions). The original
+  SPEC's "ls20" gate was over-optimistic; FORGE BFS is needed for ls20.
+- Achieved on broader sweep: 1/25 games (ft09 in 116 actions) -- net
+  parity with RandomAgent's 1/25 (r11l). Likely LB outcome 0.18-0.22.
+
+#### 4. Submission decision (per AskUser Option C)
+- Acknowledged regression risk: predicted LB 0.18-0.22 < current best 0.24.
+- Submitted anyway as an ablation: confirms whether state-graph dedup
+  alone moves the needle vs random.
+
+#### 5. Comp kernel push + submit
+- Built `experiments/exp005_trigger_aware_bfs/comp_kernel/`
+  (kernel-metadata.json + 6-cell trigger_bfs_comp.ipynb mirroring the
+  FORGE kernel structure). Cell 1 inlines a self-contained 8.3 KB
+  `my_agent.py` with hash + StateGraph + MyAgent (subclass of
+  `agents.agent.Agent` with dual-arg signatures).
+- `kaggle kernels push` -> version 1 -> RUNNING -> COMPLETE in ~30 s.
+- Save-mode log clean (21 s, same benign deps warnings as FORGE save).
+- `kaggle competitions submit arc-prize-2026-arc-agi-3 -k cataluna84/trigger-bfs-comp-arc-agi-3 -v 1 -f submission.parquet`
+  accepted at 14:24:01 UTC. Status: PENDING.
+
+### Files created/modified (all dated 2026-05-02 D4 afternoon)
+- Created: `agents/state_graph.py`, `agents/trigger_bfs_agent.py`,
+  `tests/test_state_graph.py`, `tests/conftest.py`,
+  `scripts/trigger_bfs_smoke_local.py`,
+  `experiments/exp005_trigger_aware_bfs/{README.md,scores.json}`,
+  `experiments/exp005_trigger_aware_bfs/comp_kernel/{kernel-metadata.json,trigger_bfs_comp.ipynb}`.
+- Submitted: kernel `cataluna84/trigger-bfs-comp-arc-agi-3` v1.
+
+### Verification
+- `uv run ruff check .`: clean.
+- `uv run ruff format --check .`: clean.
+- `uv run pytest tests/test_state_graph.py`: 5/5 PASS.
+- `uv run python scripts/trigger_bfs_smoke_local.py`: 22/22 PASS.
+
+### Open
+- s1 (exp005) lands ~24 h. Append to scores.json at that point.
+- D5: per SPEC_4WEEKS §1.3 was Trigger-BFS submit (now D4 instead).
+  Tomorrow's D5 should be EITHER: extend with BFS replay (originally D7)
+  if exp005 LB is encouraging, OR pivot to a different track if exp005
+  regresses to the random floor.
+
+---
+
+## 2026-05-02 — D4 morning: D3 LB result landed = 0.24 (+0.05 vs 0.19)
+
+### What we learned
+- Kernel `cataluna84/ash-s-arc-agi-3-agent` v2 final LB score: **0.24** (status COMPLETE, submitted 2026-05-01 18:32:55 UTC).
+- Variance probe data points so far: s1=0.19 (kernel v1, 2026-04-29), s2=0.24 (kernel v2, 2026-05-01). Range 0.05, mean 0.215.
+- **Verdict (per `experiments/exp002_forge_variance_probe/scores.json` decision rule)**:
+  - max(s1, s2) = 0.24 < 0.30 threshold → **NOT variance-dominated**, multi-seed best-of-N is not the right lift.
+  - max(s1, s2) = 0.24 < 0.25 threshold → **structural floor near 0.19** is the leading explanation; pivot to other agents per SPEC_4WEEKS is the correct path.
+  - Caveat: the +26% relative jump (0.19→0.24) is non-trivial, hinting at *some* run-to-run variance from the FORGE codebase. A third probe (s3) would give a stddev estimate; it is optional and can be deferred. Sticking with the rule: proceed to D4 Stochastic Goose port.
+
+### Leaderboard context (as of 2026-05-02 13:52:04 UTC)
+- **Public LB pulled** via `kaggle competitions leaderboard arc-prize-2026-arc-agi-3 --download`. Saved at `/tmp/lb/arc-prize-2026-arc-agi-3-publicleaderboard-2026-05-02T13:52:04.csv` (49 KB, 715 teams).
+- Our row: rank **315 / 715** (top 44%), TeamId=15773862 "Mayank Bhaskar", username `cataluna84`, submission count 3.
+- We are inside a **27-team tied cluster all at 0.24** (ranks 291-317 inclusive). One step up to 0.25 → 28 teams; up to 0.26 → another 28; up to 0.27 → 29.
+- Score distribution heavy in the 0.17-0.28 noise band (≈250 teams of 715 ≈ 35%). Cliff above 0.30: 20 teams at 0.30, 20 at 0.29, 18 at 0.35, 17 at 0.33. Each +0.01 above 0.30 climbs ~10-20 ranks.
+- Top: 0.68 (Redfield Rentals, 20 submissions). Public notebook ceiling 0.42 = StochasticGoose v7 + variants. Gap from us to that ceiling: 0.18.
+
+### Kernel artifact verification (downloaded via `kaggle kernels output`)
+- `submission.parquet` (2.6 KB, 1 row): `row_id='1_0', game_id='1', end_of_game=True, score=1`. Confirmed this is the **save-mode placeholder** — actual eval happens server-side in COMPETITION_RERUN; the 0.24 score is computed there, not from this file.
+- `my_agent.py` (98 KB): inlined notebook source. Sanity-checks: it is a clean copy of upstream FORGE v19; no diff vs `experiments/exp002_forge_variance_probe/_pulled/ash-s-arc-agi-3-agent.ipynb`.
+- `ash-s-arc-agi-3-agent.log` (9.6 KB JSON streamed): pip install of `arc-agi-0.9.8`, `arcengine-0.9.3`, `pillow-12.2.0` from competition wheels — succeeded; nbconvert wrote 130 KB notebook + 785 KB HTML; **save-mode wall clock = 16 s**. Two existing benign warnings: (a) gradio 5.50.0 wants pillow<12.0 (non-fatal — gradio not used in eval), (b) dopamine-rl wants gym<=0.25.2 (non-fatal — dopamine not used). No errors, no tracebacks.
+
+### Files touched (all dated 2026-05-02)
+- Updated: `experiments/exp002_forge_variance_probe/scores.json` (s2 resolved to 0.24, summary block populated, LB context).
+- Updated: `.factory/memories.md` (this dated section, top).
+- Updated: `CHANGELOG.md` (D4 morning section).
+- Installed (uv venv): `pyarrow` for parquet inspection.
+
+### Open
+- D4 (today): begin Stochastic Goose port per SPEC_4WEEKS.md §1.2. Submit if smoke clean.
+- Optional: a third FORGE probe (s3) on some later build day to confirm the +0.05 variance is real. Not blocking.
+
+---
+
+## 2026-05-01 — D3 strategy reset + Qwen postmortem + Track A FORGE resubmit
+
+### What we did
+
+#### 1. Strategy reset doc
+- Yesterday's Qwen submission landed on the LB at **0.00**, regressing from 0.19 (back-pointer to 2026-04-30 entry: Qwen got the LB number we feared, not the ~0.0-0.1 hope). Two LB data points so far: (0.19, 0.00). Mean 0.095, neither is informative about FORGE variance.
+- User asked for fresh deep research + new plan from scratch. Six exa searches across the ARC-AGI-3 literature (paper arXiv 2603.24621, Heins 2026 AXIOM, ARC-AGI-2 winners, public Kaggle code) yielded:
+  - Public LB landscape: 0.42 (Ash) → 0.39 (hybrid) → 0.35 (Trigger-BFS) → 0.32 (Goose++) → 0.25 (sample-Goose) → 0.19 (OURS) → 0.18 (random).
+  - **Painful insight**: 0.19 is barely above random; the public floor is 0.25.
+  - Scoring rules confirmed from SDK §0.9.3: per-level squared, per-game weighted by `level_index` (1-indexed), averaged across 25 envs. COMPETITION mode forces level resets only.
+  - 6 augmentation strategies catalogued: D₄ symmetries (8x), color permutations (50x), HER, CA perturbations, grid traversals, cross-game synthetic data.
+- Created `research/04_strategy_reset_2026-05-01.md` (7 sections: hard facts, literature digest, Qwen failure analysis, 4-week plan, 6 augmentations, today's decision, references).
+
+#### 2. Qwen postmortem
+- Created `experiments/exp004_qwen_agent/POSTMORTEM.md` with 5 root causes:
+  1. Greedy-decode determinism (no temperature, no sampling diversity → action collapse).
+  2. Vision prefill bottleneck (4.6s of 5.13s/action on encoding, not decoding — model never gets enough budget).
+  3. No state memory (every turn re-prompted from scratch → no progress tracking).
+  4. No frame-change feedback (anti-repeat patch fired in some states but had no real change-detection).
+  5. No ACTION6 click-coord path (model emits "ACTION6" with no `(x,y)` data; harness silently maps to (0,0)).
+- What we keep: agent class scaffold, kernel-metadata patterns, transformers-bundle dataset (frozen).
+- New gotchas #11-15 ratified in `gotchas.md`.
+
+#### 3. SPEC_4WEEKS (D3-D28) drafted
+- Created `experiments/SPEC_4WEEKS.md` (~620 lines): per-day Goal / Files / Implementation pattern / Smoke test / Submit? / Exit / Rollback. Submit days (11): D3, D4, D5, D7, D9, D12, D17, D20, D24, D27. Build-only days (15) deliberately leave slots open for emergency Track A fallbacks.
+- Submission slot accounting table at §5.6 mirrors the daily cadence so an agent picking up mid-stream knows exactly which kernel slug to push.
+- Cross-cutting concerns documented: Kaggle Datasets to maintain (6 entries), augmentation scoreboard table (`AUGMENTATION_SCOREBOARD.md`), tests to maintain (5 pytest modules), pre-commit hygiene, hard constraints, open questions reserved for D6/D11.
+
+#### 4. Track A FORGE variance probe — slot consumed
+- `bash scripts/resubmit_forge.sh` → kernel `cataluna84/ash-s-arc-agi-3-agent` v2 pushed → status COMPLETE in ~6 min wall.
+- Initial submission attempt failed: tried `kaggle competitions submit-code ...`. CLI 2.1.0 does not have a `submit-code` subcommand; the actual code-competition submit API is `kaggle competitions submit <competition> -k <kernel> -v <version> -f <output_file>` (positional competition arg, no `-c`, no `submit-code`). Documented as gotcha #15.
+- Correct command landed: `kaggle competitions submit arc-prize-2026-arc-agi-3 -k cataluna84/ash-s-arc-agi-3-agent -v 2 -f submission.parquet -m "exp002 D3 (2026-05-01) variance probe - FORGE baseline unchanged"`.
+- `kaggle competitions submissions arc-prize-2026-arc-agi-3` confirms PENDING entry at 2026-05-01 18:32:55 UTC. Will resolve in ~24 h; will record as `s2` in `experiments/exp002_forge_variance_probe/scores.json`.
+
+### Files touched (all dated 2026-05-01)
+- Created: `research/04_strategy_reset_2026-05-01.md`, `experiments/exp004_qwen_agent/POSTMORTEM.md`, `experiments/SPEC_4WEEKS.md`, `experiments/exp002_forge_variance_probe/_pulled/` (auto-pulled).
+- Modified: Kaggle kernel `cataluna84/ash-s-arc-agi-3-agent` pushed as version 2 (notebook unchanged).
+
+### Verification
+- `kaggle competitions submissions` shows 3 submissions (D0=0.19, D1/Qwen=0.00, D3 PENDING).
+- SPEC_4WEEKS.md lints clean.
+
+### Open
+- s2 will land ~24 h. Append to `experiments/exp002_forge_variance_probe/scores.json` once visible.
+- D4: begin Stochastic Goose port per SPEC_4WEEKS §1.2.
+
+---
+
 ## 2026-04-30 — D2 exp004 Qwen comp submission via CLI (Track B)
 
 ### What we did

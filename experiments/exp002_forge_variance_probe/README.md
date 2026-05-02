@@ -25,10 +25,11 @@ KAGGLE_API_TOKEN="$KAGGLE_KEY" .venv/bin/kaggle kernels push \
 .venv/bin/kaggle kernels status cataluna84/ash-s-arc-agi-3-agent
 
 # Step 4: when COMPLETE, find the new version number from the push output, then submit:
-.venv/bin/kaggle competitions submit-code \
-  -c arc-prize-2026-arc-agi-3 \
-  --kernel cataluna84/ash-s-arc-agi-3-agent \
-  --kernel-version <NEW_VERSION_NUMBER> \
+# IMPORTANT: there is NO `submit-code` subcommand in kaggle CLI 2.1.0.
+# Use the regular `submit` with -k/-v/-f instead (see gotcha #15).
+.venv/bin/kaggle competitions submit arc-prize-2026-arc-agi-3 \
+  -k cataluna84/ash-s-arc-agi-3-agent \
+  -v <NEW_VERSION_NUMBER> \
   -f submission.parquet \
   -m "exp002 variance probe - FORGE baseline unchanged, daily resubmit #N"
 ```
@@ -38,7 +39,7 @@ KAGGLE_API_TOKEN="$KAGGLE_KEY" .venv/bin/kaggle kernels push \
 > on fork). We can rename the fork on Kaggle later; for now we keep
 > referring to it by its actual slug to avoid breaking links and CLI invocations.
 
-> **WARNING**: each `submit-code` consumes one of your daily submission
+> **WARNING**: each `submit` (with `-k`) consumes one of your daily submission
 > slots. The CLI does NOT prevent re-submissions; the server enforces the cap.
 
 ## Logging

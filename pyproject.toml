@@ -141,6 +141,19 @@ ignore = [
     "E501",     # long doc lines OK in module docstring
     "ARG001",   # rng_seed kept in parse_action signature for forward-compat
 ]
+"agents/qwen_backbone.py" = [
+    "S108",     # /tmp/qwen_trace.log is intentional
+    "PTH123",   # open() in trace logger
+    "B904",
+    "E501",     # long doc lines OK in module docstring
+]
+"agents/qwen_policy_agent.py" = [
+    "S108",     # /tmp/qwen_trace.log is intentional
+    "PTH123",   # open() in trace logger
+    "B904",
+    "BLE001",   # broad except around backbone fault is intentional fallback
+    "E501",     # long doc lines OK
+]
 # Tests can use assert and skip docstrings
 "**/test_*.py" = ["S101", "ARG", "D"]
 "**/conftest.py" = ["S101", "ARG", "D"]
