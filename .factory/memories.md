@@ -5,6 +5,50 @@
 
 ---
 
+## 2026-05-02 — D4 evening: H100 accelerator-flag finding + exp004 reboot kernel saga
+
+### What we did
+
+Per D4 evening AskUser checkpoint (try all 5 architectural options A-E sequentially), built
+`agents/qwen_backbone.py` (vLLM/transformers dual runtime, parsers, ChangeLog) +
+`agents/qwen_policy_agent.py` (Option A: StateGraph + ChangeLog + F1-F5 fixes from POSTMORTEM)
++ 21 unit tests + 22-check parity smoke. All PASS locally.
+
+Pushed `cataluna84/arc-agi-3-agents-pkg` Dataset v3 and built
+`experiments/exp004_qwen_agent/dev_kernel_v2/qwen_policy_dev.ipynb` to validate Option A on H100.
+
+#### Kernel iteration (8 versions, ~3 hours)
+
+- v1: ERRORED on `Qwen3_5MoeGatedDeltaNet._init_weights` (`.uniform_(0,16).log_()`)
+- v2: ERRORED — patched class top-level `_init_weights`; `smart_apply` traverses sub-models
+- v3: COMPLETE in 16 min, but **fake success** — backbone failing silently, agent fallback to random;
+  200 actions in 4.1s @ 0.02s/action; change_rate=0.71, 0/7 levels — pattern of pure RNG behavior
+- v4: NameError on direct probe (placed before agent created); but log revealed root cause:
+  **Tesla P100 sm_60 GPU assigned, not H100**. PyTorch wheel only supports sm_70+. Model loaded
+  with `device_map=auto` but offloaded everything to CPU/disk, inference silently fails
+- v5: Tried `"gpu_type": "h100"` in kernel-metadata.json — field unsupported by CLI 2.1.0. ERROR
+- v6: `--accelerator NvidiaH100` flag added; QUEUED for 6.5h (H100 contended; CLI flag was being honored)
+- v7: Tried `--accelerator NvidiaTeslaA100` while v6 was queued — ran immediately on P100. A100
+  appears to NOT be in competition's allowed pool; request silently downgraded to P100. ERROR (sanity check fired)
+- v8: Re-pushed with `--accelerator NvidiaH100`, left queued overnight. STATUS: QUEUED at push.
+
+### Key gotcha #16 added
+
+`--accelerator NvidiaH100` is the ONLY way to request H100 hardware. The widely-cited `gpu_type`
+JSON field in `kernel-metadata.json` is a myth (not honored by CLI 2.1.0). For our account/competition,
+`NvidiaTeslaA100` requests get silently downgraded to P100 — H100 may be the only non-default we can
+request. Available accelerators (Feb 2026): NvidiaTeslaP100 (default), NvidiaTeslaT4,
+NvidiaTeslaT4Highmem, NvidiaTeslaA100, NvidiaL4, NvidiaL4X1, NvidiaH100, NvidiaRtxPro6000, plus TPUs.
+
+### Tomorrow (2026-05-03 D5)
+
+1. First check exp005 LB result (PENDING since 14:24 UTC D4)
+2. Check v8 status — if H100 freed up overnight, run the Option A smoke
+3. If COMPLETE: review per-game scorecard, decide whether to advance to Phase 1 (Option D ACTION6 specialist)
+4. If still QUEUED: cancel + investigate alternate model that fits on P100 (16GB) — Qwen2.5-VL-3B/7B candidates
+
+---
+
 ## 2026-05-02 — D4 afternoon: exp005 Trigger-BFS ablation submitted (PENDING)
 
 ### What we did
