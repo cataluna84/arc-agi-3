@@ -41,6 +41,12 @@ dev = [
     "ruff>=0.14.0",
     "pre-commit>=4.0.0",
     "pytest>=8.3.0",
+    # numpy is a *test-only* dep here. The runtime numpy comes from the
+    # arc-agi SDK wheels installed offline via scripts/install_arc_agi_sdk.py.
+    # CI doesn't install those wheels, so without an explicit dev pin
+    # `tests/test_state_graph.py` and `tests/test_goose_cnn.py` fail to
+    # collect with `ModuleNotFoundError: No module named 'numpy'`.
+    "numpy>=2.0.0",
 ]
 
 [build-system]
