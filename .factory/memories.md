@@ -5,6 +5,78 @@
 
 ---
 
+## 2026-05-04 — D6 morning: D5 LB landed (MASTER v7 = 0.21) + Qwen H100 kernel still queued
+
+### What we did
+
+- Pulled status of all kernels and the comp submissions table.
+- Verified the D5 submission `cataluna84/master-v7-comp-arc-agi-3` v1 ran and was
+  submitted at 18:59 UTC on 2026-05-03.
+- Pulled the dev-mode log + `my_agent.py` + dummy `submission.parquet` from the kernel.
+  The dev log shows pip install (arc-agi 0.9.8 + arcengine 0.9.3) + `%%writefile`
+  + `__notebook__.ipynb` conversion. No agent code runs in dev mode (correct).
+  The actual 25-game eval ran during Kaggle's comp re-run on the GPU image; that
+  log isn't API-downloadable for code competitions but the LB result IS.
+
+### LB scoreboard (cumulative)
+
+| Day | Date       | Slug                                    | LB    | Δ vs anchor (0.19) |
+|-----|------------|-----------------------------------------|-------|--------------------|
+| D1  | 2026-04-29 | Ash baseline (FORGE v19 fork)           | 0.19  | 0                  |
+| D2  | 2026-04-30 | exp004 Qwen3.6-35B-A3B BF16             | 0.00  | -0.19              |
+| D3  | 2026-05-01 | exp002 variance probe (FORGE rerun)     | 0.24  | +0.05              |
+| D4  | 2026-05-02 | exp005 Trigger-BFS ablation             | 0.10  | -0.09              |
+| D5  | 2026-05-03 | exp006 MASTER v7 (FORGE v19 op_2 + extras) | **0.21** | +0.02              |
+
+**Verdict (D5)**: MASTER v7 = 0.21. Recovers from D4's 0.10 collapse but lands BELOW
+D3's 0.24 vanilla FORGE baseline. The kitchen-sink merge of 6 public notebooks
+(beam search + MCTS click masking + grad_clip + intrinsic_reward) did not break out
+of the 0.19-0.24 plateau where vanilla FORGE-family agents converge. **Structural-floor
+verdict from D4 holds**: pure-search FORGE variants are bouncing in a tight band, no
+permutation of public-notebook tricks has yet pushed past +0.05 over the anchor.
+
+### Kernel statuses (2026-05-04 14:24 UTC)
+
+| Kernel                                            | Status   | Notes                                  |
+|---------------------------------------------------|----------|----------------------------------------|
+| `cataluna84/master-v7-comp-arc-agi-3`             | COMPLETE | D5 submission, scored **0.21**         |
+| `cataluna84/trigger-bfs-comp-arc-agi-3`           | COMPLETE | D4 submission, scored 0.10             |
+| `cataluna84/qwen-policy-dev-arc-agi-3`            | QUEUED   | v9 (--accelerator NvidiaH100), waiting |
+| `cataluna84/forge-arc-agi-3-agent`                | 404      | UI-created variant; not API-visible    |
+| `cataluna84/arc-agi-3-hybrid-solver-bfs-cnn-...`  | 404      | UI-created variant; not API-visible    |
+
+User report (2026-05-04 morning): "Other than the last v9 of QWEN policy dev,
+everything has run successfully" — so v6 and v8 of qwen-policy-dev-arc-agi-3 DID
+run on H100, but their logs are no longer API-downloadable because CLI 2.1.0's
+`kaggle kernels output` only fetches the LATEST version. The latest is v9 (queued)
+which has no output yet. So the v6/v8 outputs are stranded on Kaggle UI and can
+only be retrieved via the web UI. **This is a new gotcha worth recording**.
+
+### Path forward (D6)
+
+1. **Strategic**: with FORGE-family bouncing in 0.19-0.24, it is time to commit the
+   D6 slot to a NEW track that meaningfully differs in approach. Top options:
+   - **Track Q (Qwen)**: wait for qwen-policy-dev v9 to land + use insights from
+     v6/v8 logs (need user to fetch via UI). Then build a Qwen comp kernel.
+   - **Track G (Goose v0.9)**: re-implement the public StochasticGoose CNN-only
+     baseline; per leaderboard anchors that approach scored 0.42 in someone's
+     hands. Our forks of FORGE-style went 0.19/0.21 — Goose may be the
+     under-represented family.
+   - **Track D (DSL search)**: hand-code a DSL of "common ARC primitives" + BFS
+     over DSL-program space. High-effort, high-variance.
+2. **Tactical**:
+   - Ask user to download v6/v8 logs of qwen-policy-dev from Kaggle UI; needed to
+     verify Option A backbone actually loaded the 35B model on H100 + saw real
+     LLM-driven action choices (not random fallback).
+   - If v9 dequeues today, capture log + JSON; otherwise unblock by manually
+     pulling from UI.
+3. **Hygiene**:
+   - master-v7-comp.ipynb commit blocked by Droid-Shield on 2026-05-03 (pickle
+     blob false positive). Decide: redact-and-commit vs leave un-versioned in
+     local repo (mirror is on Kaggle anyway).
+
+---
+
 ## 2026-05-02 — D4 evening: H100 accelerator-flag finding + exp004 reboot kernel saga
 
 ### What we did

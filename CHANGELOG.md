@@ -14,6 +14,18 @@ entries under `[Unreleased]` rather than tagged version cuts.
 
 ## [Unreleased]
 
+### Added - 2026-05-04 D6 morning (D5 LB landed + status sweep)
+- `experiments/exp006_master_v7/comp_kernel/{master_v7_comp.ipynb,kernel-metadata.json}`:
+  CLI-managed copy of MASTER BASELINE v7 (FORGE v19 op_2 + v17 beam search +
+  MCTS click masking + grad_clip + intrinsic_reward). Pushed as
+  `cataluna84/master-v7-comp-arc-agi-3` v1 + submitted at 2026-05-03 18:59 UTC.
+
+### Result - 2026-05-04 D6 morning (D5 LB)
+- **LB 0.21** for exp006 MASTER v7. Recovers +0.11 from D4 collapse but stays
+  -0.03 below D3 baseline (0.24). Five-day trace 0.19 / 0.00 / 0.24 / 0.10 / 0.21
+  confirms a structural floor near 0.20 for FORGE-family agents.
+- Pivot needed for D6+: candidate tracks are Q (Qwen), G (Goose CNN), D (DSL).
+
 ### Added - 2026-05-02 D4 afternoon (exp005 Trigger-BFS ablation submitted)
 - `agents/state_graph.py`: shared state-graph wrapper for search-based
   agents. Provides `hash_frame()`, `StateNode`, `StateGraph` with

@@ -154,6 +154,18 @@ ignore = [
     "BLE001",   # broad except around backbone fault is intentional fallback
     "E501",     # long doc lines OK
 ]
+"agents/goose_cnn_model.py" = [
+    "BLE001",   # graceful torch fallback uses broad except
+    "E501",     # long doc lines OK in module docstring
+    "N806",     # B/H/W and F (functional) are conventional ML names
+    "PLR0913",  # GooseCNNPredictor takes >5 hyperparams by design
+]
+"agents/goose_cnn_agent.py" = [
+    "BLE001",   # graceful torch / runtime fallback uses broad except
+    "E501",     # long doc lines OK in module docstring
+    "PLR0913",  # GooseCNNAgent takes >5 hyperparams by design
+    "PLR0915",  # choose_action linear flow is more readable than splitting
+]
 # Tests can use assert and skip docstrings
 "**/test_*.py" = ["S101", "ARG", "D"]
 "**/conftest.py" = ["S101", "ARG", "D"]

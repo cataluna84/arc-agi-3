@@ -57,25 +57,33 @@ See: `experiments/exp001_baseline_forge/`.
 - D1 (placeholder; consumed by D2 logic) — slot held
 - D2 (2026-04-30): 0.00 (Qwen Track B)
 - D3 (2026-05-01): 0.24 (FORGE v2, Track A variance)
-- D4 (2026-05-02): PENDING (exp005 Trigger-BFS ablation)
+- D4 (2026-05-02): 0.10 (exp005 Trigger-BFS — regression -0.14 vs D3)
+- D5 (2026-05-03): 0.21 (exp006 MASTER v7 — partial recovery, still below D3)
 
-### [ ] D5+ (2026-05-03 onward): see `experiments/SPEC_4WEEKS.md`
+### [x] D5 (2026-05-03): MASTER BASELINE v7 (exp006)
 
-The day-by-day plan from D5 through D28 lives in `experiments/SPEC_4WEEKS.md`.
-That document is the canonical source for: file paths, code patterns,
-smoke-test commands, submit decisions, exit criteria, rollback plans,
-and the slot-accounting table.
+**LB result**: 0.21. Recovers from D4 collapse (0.10 → 0.21) but still below D3
+baseline (0.24). FORGE-family bouncing in 0.19-0.24 plateau confirmed.
 
-The decision tree for D5 (2026-05-03) depends on the exp005 LB result:
+**Built**: `experiments/exp006_master_v7/comp_kernel/{master_v7_comp.ipynb,kernel-metadata.json}`. Agent code = MASTER BASELINE v7 (FORGE v19 op_2 + v17 beam search +
+MCTS click masking + grad_clip + intrinsic_reward; merged 6 top public notebooks).
+Pulled from user-created Kaggle UI variant `arc-agi-3-hybrid-solver-bfs-cnn-heuristics`
+because UI-only kernels return 404 on submit API; CLI-pushed `master-v7-comp-arc-agi-3`
+v1 was accepted.
 
-- **If exp005 LB > 0.24**: state-graph dedup is genuinely helping; build BFS
-  replay (SPEC §1.5 D7) on top of TriggerBFSAgent. Target LB 0.32-0.35.
-- **If 0.18 < exp005 LB <= 0.24**: state graph helps modestly but not
-  enough on its own. Add frame-change CNN + BFS replay simultaneously
-  (combined SPEC D7 + D9). Target LB 0.30-0.36.
-- **If exp005 LB <= 0.18**: regression vs random; diagnose via dev kernel
-  logs and revert to FORGE for D5 slot. Recovery path: re-run TriggerBFSAgent
-  with action-priority disabled or seed-sweep.
+### [ ] D6+ (2026-05-04 onward): pivot away from FORGE-family
+
+Five datapoints (D0=0.19, D2=0.00, D3=0.24, D4=0.10, D5=0.21) confirm a structural
+floor at ~0.20 for pure-search FORGE/Trigger-BFS agents. Top-of-LB is 0.68 — to
+move from 0.21 to 0.42+ we need a meaningfully different family. Open candidates:
+
+- **Track Q (Qwen)**: qwen-policy-dev v6/v8 ran on H100 yesterday per user; v9
+  still queued. Logs are stranded on Kaggle UI (CLI 2.1.0 only fetches latest
+  version output). Need to retrieve via web UI.
+- **Track G (Goose)**: re-implement public StochasticGoose CNN-only baseline
+  (advertised public ~0.42).
+- **Track D (DSL search)**: hand-code DSL of common ARC primitives + BFS over
+  programs. High effort, high variance.
 
 > The legacy `Phase 1 / Phase 2 / Phase 3 / Phase 4` sections that
 > previously enumerated D5..D20 with target scores have been superseded
@@ -110,8 +118,9 @@ as a Tier-C verifier per `research/04_strategy_reset_2026-05-01.md` §6.
 |  D1 | 2026-04-29 | (held)                                       |       — | —      | —           | Slot held; absorbed by D2 logic |
 |  D2 | 2026-04-30 | `cataluna84/qwen-comp-arc-agi-3` v1          |     ~0.0 | 0.00   | —           | Qwen Track B — postmortem      |
 |  D3 | 2026-05-01 | `cataluna84/ash-s-arc-agi-3-agent` v2        |    ~0.19 | 0.24   | 315/715     | FORGE v2, +0.05 variance lift  |
-|  D4 | 2026-05-02 | `cataluna84/trigger-bfs-comp-arc-agi-3` v1   | 0.18-0.22 | PENDING | —          | exp005 Trigger-BFS ablation    |
-|  D5+| 2026-05-03+| (TBD per exp005 LB result)                   | 0.30-0.36 | —      | —           | See `experiments/SPEC_4WEEKS.md` |
+|  D4 | 2026-05-02 | `cataluna84/trigger-bfs-comp-arc-agi-3` v1   | 0.18-0.22 | 0.10   | —          | exp005 Trigger-BFS ablation; -0.14 regression |
+|  D5 | 2026-05-03 | `cataluna84/master-v7-comp-arc-agi-3` v1     | 0.30-0.36 | 0.21   | —          | exp006 MASTER v7 (FORGE v19 + 6-nb merge); +0.11 recovery from D4, still below D3 |
+|  D6+| 2026-05-04+| (TBD — pivot away from FORGE-family)         | 0.30-0.40 | —      | —          | Track Q (Qwen), Track G (Goose), or Track D (DSL) |
 
 ## Definition of Done for each phase
 

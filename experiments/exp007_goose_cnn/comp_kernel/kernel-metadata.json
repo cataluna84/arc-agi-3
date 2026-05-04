@@ -1,0 +1,18 @@
+{
+  "id": "cataluna84/goose-cnn-comp-arc-agi-3",
+  "title": "Goose CNN comp ARC-AGI-3",
+  "code_file": "goose_cnn_comp.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": [
+    "arc-prize-2026-arc-agi-3"
+  ],
+  "model_sources": []
+}
