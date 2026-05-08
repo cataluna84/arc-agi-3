@@ -5,6 +5,137 @@
 
 ---
 
+## 2026-05-07 — D9: Goose CNN postmortem + v2 fix + slot used (Qwen-as-policy dropped)
+
+### Headline
+
+- **D6 LB result for Goose CNN v1 (exp007): 0.00** — silent crash on the comp rerun host.
+- **D9 slot used on Goose CNN v2**: pushed `cataluna84/goose-cnn-comp-arc-agi-3` v2 with 3
+  defensive fixes; status COMPLETE in ~40s; submitted at 2026-05-08 00:23 UTC, PENDING.
+- **Qwen-as-policy dropped** from active tracks: research + our own qwen-policy-dev run
+  (2026-05-06: 422 actions, 0/3 games solved) confirms LLM-policy is structurally worse
+  than random + frame-segmentation on ARC-AGI-3 (paper arXiv:2512.24156 documents the
+  same effect: LLM+DSL solves 5 levels, random solves 6).
+
+### Postmortem: why Goose v1 scored 0.00
+
+Comparison against the working master_v7 (LB 0.21) revealed three root causes:
+
+| # | Hypothesis | Evidence | Severity |
+|---|---|---|---|
+| 1 | `enable_gpu=true` differs from every kernel that scored >0 | `master_v7` and `trigger_bfs` both used `enable_gpu=false` and ran on CPU. Comp rerun GPU host can hard-fail before first action (lazy CUDA init). | **HIGH** |
+| 2 | `predictor.predict()` had no `try/except` | Master_v7 wraps choose_action in `try/except Exception` and returns `random.choice(s.al)` on any failure. Our agent raised every step on torch error → gateway loop stalled. | **HIGH** |
+| 3 | Level reset triggered on any change incl. `levels_completed=-1` | Defensive — no direct evidence but Kaggle's gateway can emit transient `-1` during boot. | LOW |
+| 4 | `action.set_data` API mismatch | Audited against random/trigger_bfs/qwen_policy/master_v7: API is identical. NOT the bug. | INFO |
+| 5 | Import chain `agents.templates.my_agent → agents.agent` | Master_v7 uses identical chain and works. NOT the bug. | INFO |
+
+Local kernel log only shows the dry-run save (24s; no agent execution; just nbconvert).
+Competition rerun logs are server-private for code competitions, so the actual error is
+inferred from the architectural diff vs working kernels. The downloadable
+`submission.parquet` from the kernel is the dummy fallback row only — confirming the
+agent never wrote real progress to the gateway during the comp rerun.
+
+### v2 diffs (applied D9, all three at once)
+
+```python
+# 1. comp_kernel/kernel-metadata.json
+"enable_gpu": false  # was true
+
+# 2. agents/goose_cnn_agent.py + inlined notebook MyAgent.choose_action
+def choose_action(self, frame):
+    try:
+        return self._choose_action_inner(frame)
+    except Exception as exc:
+        logger.warning("graceful fallback: %r", exc)
+        avail = list(getattr(frame, "available_actions", []) or [1, 2, 3, 4, 5])
+        non_reset = [int(a) for a in avail if int(a) != 0 and int(a) != 6]
+        if not non_reset: non_reset = [1, 2, 3, 4, 5]
+        return GameAction.from_id(self._rng.choice(non_reset))
+
+# 3. predictor.predict wrap (uniform priors on torch/CUDA/shape error)
+try:
+    preds = self.predictor.predict(cur_grid)
+except Exception:
+    ap = np.full((NUM_SIMPLE_ACTIONS,), 0.5, dtype="float32")
+    cp = np.full((GRID_SIZE, GRID_SIZE), 0.5, dtype="float32")
+
+# 4. level transition guard
+if cur_levels >= 0 and cur_levels != self._prev_levels:
+    self._on_level_transition()
+```
+
+### Submission timeline (D9)
+
+| Time UTC | Event |
+|----------|-------|
+| 2026-05-08 00:18 | `kaggle kernels push` v2 → version 2 successfully pushed |
+| 00:18-00:19 | Polled status: RUNNING ×3 → COMPLETE at t≈40s |
+| 00:23 | `kaggle competitions submit -k cataluna84/goose-cnn-comp-arc-agi-3 -v 2 -f submission.parquet` → PENDING |
+
+### Pre-submission checks (all PASS)
+
+- `uv run ruff check .` — clean
+- `uv run ruff format --check .` — 24 files already formatted
+- `uv run pytest` — 40/40
+- `uv run python scripts/goose_cnn_smoke_local.py` — 22/22 (incl. `mock end-to-end: 1 win on ls20-mock in 218 actions`)
+- `uv run python experiments/local_runner.py --agent agents.goose_cnn_agent:GooseCNNAgent --games ls20-mock --max-actions 100` — completed; action distribution diverse (ACTION6=20, ACTION1=16, ACTION5=16, ACTION3=14, ACTION4=11, ACTION2=11)
+
+### Cumulative LB scoreboard
+
+| Day | Date       | Slug                                        | LB    | Δ vs anchor (0.19) |
+|-----|------------|---------------------------------------------|-------|--------------------|
+| D1  | 2026-04-29 | Ash baseline (FORGE v19 fork)               | 0.19  | 0                  |
+| D2  | 2026-04-30 | exp004 Qwen3.6-35B-A3B BF16                 | 0.00  | -0.19              |
+| D3  | 2026-05-01 | exp002 variance probe (FORGE rerun)         | 0.24  | +0.05              |
+| D4  | 2026-05-02 | exp005 Trigger-BFS ablation                 | 0.10  | -0.09              |
+| D5  | 2026-05-03 | exp006 MASTER v7 (FORGE v19 op_2 + extras)  | 0.21  | +0.02              |
+| D6  | 2026-05-04 | exp007 Goose CNN v1 (Track G, GPU)          | 0.00  | -0.19 (silent crash) |
+| D9  | 2026-05-07 | exp007 Goose CNN v2 (CPU + try/except)      | PENDING | target +0.01..+0.11 |
+
+### Qwen-policy-dev verdict (2026-05-06 run, retroactive analysis)
+
+- Hardware: real H100 80GB sm_90 (good)
+- Model: Qwen3.6-35B-A3B 71.9 GB loaded in 431.8s via transformers (vllm not packaged)
+- ls20: 200 actions, 0 levels, change_rate=71%, 143 graph nodes (NOT_FINISHED)
+- vc33: 50 actions, 0 levels, change_rate=100%, 50 nodes (GAME_OVER)
+- ft09: 172 actions, 0 levels, change_rate=19%, 58 nodes (GAME_OVER)
+- Total: 422 actions @ 1.625 s/action, 0/3 games with ≥1 level
+
+Reference: graph-exploration paper (Rudakov 2026, arXiv:2512.24156) reports ls20 L1
+solvable in ~124 actions median by frame-segmentation alone. **Our 35B Qwen ran 200
+actions on ls20 and got 0 levels — strictly worse than random.** The same paper
+documents LLM+DSL solving 5 levels vs random's 6 on the private set. This is a
+structural gap, not a prompt-tuning gap.
+
+**Decision**: drop Qwen-as-policy from the active track list. Possible future revival
+roles: Verifier ("does this state look like a winning state?") or Orchestrator (Qwen
+plans, BFS executes), but only after a strong base agent exists. Memory budget +
+H100 contention costs do not justify ongoing development right now.
+
+### What changes in the spec (SPEC_4WEEKS)
+
+- **D9 (today)**: marked Done; Goose CNN v2 PENDING; expected LB 0.20-0.30.
+- **D10-D11 priority** (was: world-model + click-head trainings): bump up the
+  frame-segmentation port from arXiv:2512.24156 to D10. The paper shows their
+  approach solves 19/52 ≈ 0.36 LB; our master_v7 sits at 0.21. The gap is large
+  and the implementation is small (~200 LOC).
+- **Track B (Qwen comp)**: deprioritized indefinitely. Spec line stays for
+  reference but no submission allotted.
+
+### Tomorrow (D10)
+
+1. Read D9 LB landing result; if Goose v2 ≥ 0.20, the v1 0.00 was a packaging bug
+   confirmed; if still 0.00, escalate (try `enable_internet=false` explicit, double
+   the action timeout, examine cell ordering against StochasticGoose 1st-place repo).
+2. Start `agents/frame_segmenter.py` per the dolphin-in-a-coma reference: per-color
+   connected-components + 5-tier priority grouping (size + saliency).
+3. Wire frame-segmenter into `agents/trigger_bfs_agent.py` as the saliency-tier-0
+   prior for ACTION6 click-coord sampling (replaces our current "non-bg pixel
+   uniform" prior).
+4. Smoke + push dev kernel only (D10 is build-only per SPEC_4WEEKS).
+
+---
+
 ## 2026-05-04 — D6 morning: D5 LB landed (MASTER v7 = 0.21) + Qwen H100 kernel still queued
 
 ### What we did

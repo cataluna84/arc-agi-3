@@ -30,6 +30,7 @@ dedup we target 0.30+ as a Track G first iteration.
 
 from __future__ import annotations
 
+import logging
 import random
 from typing import Any
 
@@ -41,6 +42,8 @@ from .goose_cnn_model import (
     hash_frame_grid,
 )
 from .state_graph import StateGraph, hash_frame
+
+logger = logging.getLogger(__name__)
 
 
 def _to_ndarray(layer: Any) -> Any:
@@ -230,6 +233,20 @@ class GooseCNNAgent:
         self._step_count = 0
 
     def choose_action(self, frame: Any) -> GameAction:
+        try:
+            return self._choose_action_inner(frame)
+        except Exception as exc:
+            logger.warning("choose_action: graceful fallback after %r", exc)
+            avail_raw = list(getattr(frame, "available_actions", []) or [1, 2, 3, 4, 5])
+            non_reset_fallback = [int(a) for a in avail_raw if int(a) != 0 and int(a) != 6]
+            if not non_reset_fallback:
+                non_reset_fallback = [1, 2, 3, 4, 5]
+            try:
+                return GameAction.from_id(self._rng.choice(non_reset_fallback))
+            except Exception:
+                return GameAction.RESET
+
+    def _choose_action_inner(self, frame: Any) -> GameAction:
         # Game-over / not-played -> RESET.
         if frame.state in (GameState.NOT_PLAYED, GameState.GAME_OVER):
             self._prev_hash = None
@@ -242,7 +259,7 @@ class GooseCNNAgent:
         cur_hash = hash_frame(cur_layers) if cur_layers else b"\x00" * 8
         cur_levels = int(getattr(frame, "levels_completed", 0))
 
-        if cur_levels != self._prev_levels:
+        if cur_levels >= 0 and cur_levels != self._prev_levels:
             self._on_level_transition()
             self._prev_levels = cur_levels
 
@@ -285,10 +302,20 @@ class GooseCNNAgent:
             self.predictor.update(self._train_steps, self._grids_by_hash)
 
         # Predict action / coord probs from the current frame.
+        # Wrap predict() so any torch / CUDA / shape failure on the Kaggle
+        # comp rerun host degrades to uniform priors instead of stalling
+        # the gateway loop. This is the v2 fix for the D6 LB=0.00 incident.
         if cur_grid is not None:
-            preds = self.predictor.predict(cur_grid)
-            ap = preds["action_probs"]
-            cp = preds["coord_probs"]
+            try:
+                preds = self.predictor.predict(cur_grid)
+                ap = preds["action_probs"]
+                cp = preds["coord_probs"]
+            except Exception as exc:
+                logger.debug("predictor.predict failed; using uniform priors (%r)", exc)
+                import numpy as np
+
+                ap = np.full((NUM_SIMPLE_ACTIONS,), 0.5, dtype="float32")
+                cp = np.full((GRID_SIZE, GRID_SIZE), 0.5, dtype="float32")
         else:
             import numpy as np
 

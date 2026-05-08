@@ -14,6 +14,45 @@ entries under `[Unreleased]` rather than tagged version cuts.
 
 ## [Unreleased]
 
+### Result - 2026-05-07 D9 (D6 Goose CNN v1 LB landed = 0.00; v2 fix submitted)
+- **D6 Goose CNN v1 LB = 0.00** (silent crash on the comp rerun host).
+  Verified by API: only the dummy fallback row landed in the kernel's
+  `submission.parquet`; the downloadable kernel log shows only the 24s
+  dry-run (no agent execution). Comp rerun logs are server-private for
+  code competitions, so the failure mode was inferred from the
+  architectural diff against the working `master_v7` kernel (LB 0.21).
+- **Cumulative LB trace** 0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 ; **Day 9
+  slot used on Goose CNN v2** (PENDING at 2026-05-08 00:23 UTC).
+
+### Changed - 2026-05-07 D9 (Goose CNN v2 defensive fixes)
+- `experiments/exp007_goose_cnn/comp_kernel/kernel-metadata.json`:
+  flipped `enable_gpu` from `true` to `false`. Every kernel that scored
+  >0 (master_v7, trigger_bfs) ran on CPU; the GPU-enabled v1 hit a silent
+  crash before the first action. The 4-layer CNN at 64x64 is fast enough
+  on CPU for a 100-action-per-level budget.
+- `agents/goose_cnn_agent.py` + inlined `goose_cnn_comp.ipynb`: extracted
+  `_choose_action_inner()` and wrapped `choose_action()` in `try/except
+  Exception` returning a uniform random non-RESET non-ACTION6 action.
+  Mirrors `master_v7`'s pattern that survives any model/torch/CUDA failure.
+- Added `try/except` around `predictor.predict()` so torch/CUDA/shape
+  errors degrade to uniform priors (`ap = 0.5`, `cp = 0.5`) instead of
+  raising every step.
+- Defensive guard `if cur_levels >= 0 and cur_levels != self._prev_levels`
+  prevents accidental model+buffer wipe on a transient `levels_completed=-1`
+  from the gateway during boot.
+- Pre-submission checks all PASS: `ruff check + format`, 40/40 pytest,
+  22/22 goose smoke, local_runner ls20-mock 100-action smoke.
+
+### Removed - 2026-05-07 D9 (Qwen-as-policy dropped from active tracks)
+- The 2026-05-06 qwen-policy-dev run (real H100, 422 actions) solved 0/3
+  games, with 200 actions on ls20 yielding 0 levels. The graph-exploration
+  paper (Rudakov 2026, arXiv:2512.24156) reports ls20 L1 solvable in ~124
+  actions median by frame-segmentation alone, and documents LLM+DSL
+  underperforming random (5 vs 6 levels) on the private set. This is a
+  structural gap, not a prompt-tuning gap. Qwen-as-policy is removed from
+  the active track list; possible future revival as Verifier or
+  Orchestrator only after a strong base agent exists.
+
 ### Added - 2026-05-04 D6 morning (D5 LB landed + status sweep)
 - `experiments/exp006_master_v7/comp_kernel/{master_v7_comp.ipynb,kernel-metadata.json}`:
   CLI-managed copy of MASTER BASELINE v7 (FORGE v19 op_2 + v17 beam search +
