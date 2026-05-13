@@ -1141,6 +1141,7 @@ If any fail at commit time, **fix locally before pushing**.
 |  D9 | YES     | `cataluna84/goose-cnn-comp-arc-agi-3` v2 (CPU + try/except + level>=0 guard) — Done 2026-05-07; v1=0.00, v2=**0.17** |   0.20-0.30 |
 | D10 | NO      | -    (build) `agents/frame_segmenter.py` per arXiv:2512.24156 — Done 2026-05-13 (~440 LOC + 11 tests) | - |
 | D11 | NO      | -    (build) trigger_bfs ACTION6 prior wired to segmenter tiers — Done 2026-05-13 (22/22 smoke) | - |
+| D15 | YES     | `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 (exp008; user requested submit today on banked slot) | 0.30-0.36 |
 | D12 | YES     | `cataluna84/forge-v20-comp-arc-agi-3`          |        0.42 |
 | D13 | NO      | -                                              |           - |
 | D14 | NO      | -                                              |           - |

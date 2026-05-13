@@ -25,6 +25,19 @@ entries under `[Unreleased]` rather than tagged version cuts.
   on the 100-action-per-level budget to extract useful action priors.
 - **Cumulative LB trace** 0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 / **0.17**.
 
+### Added - 2026-05-13 D15 (exp008 comp kernel + submission)
+- `experiments/exp008_trigger_bfs_seg/{README.md, build_notebook.py,
+  comp_kernel/{kernel-metadata.json, trigger_bfs_seg_comp.ipynb}}`:
+  comp kernel for the segmenter-wired trigger_bfs. `build_notebook.py`
+  is a small builder script that inlines the source-of-truth agents
+  into a 6-cell Kaggle notebook (matches the exp007 v2 pattern that
+  scored 0.17). Kernel pushed as
+  `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 (note: Kaggle
+  auto-slugged the title to `-segmenter-` instead of our configured
+  `-seg-`; metadata updated to match). Status COMPLETE in ~25s on CPU.
+  Submitted at 2026-05-13 12:29 UTC; status PENDING. Decision rule in
+  the exp008 README based on the LB band that lands.
+
 ### Added - 2026-05-13 D15 (D10+D11 frame-segmenter port + trigger_bfs wire-up)
 - `agents/frame_segmenter.py` (NEW, ~440 LOC): stateless port of
   `dolphin-in-a-coma/arc-agi-3-just-explore`'s `FrameProcessor` (3rd-place

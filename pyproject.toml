@@ -128,6 +128,8 @@ ignore = [
     "C401",
 ]
 "experiments/**/*.py" = ["T201", "ARG001", "ARG002"]
+# Notebook builder: long lines are literal command strings that mustn't break.
+"experiments/exp008_trigger_bfs_seg/build_notebook.py" = ["E501", "RUF005"]
 # Local stub of upstream agents.agent.Agent - must mirror upstream API exactly
 "agents/agent.py" = ["N803", "ARG002"]
 # Adapter to verbatim FORGE port - mirrors upstream conventions

@@ -20,8 +20,11 @@
   ~440 LOC) and wired into `agents/trigger_bfs_agent.py` as the ACTION6
   click-coord prior. 11 new unit tests (51→54 → 54/54 PASS) + 22/22 smoke,
   ruff clean, pre-commit hooks pass.
-- **Submission slot**: not used today; spec says D10-D11 are build-only.
-  Save tomorrow's slot for the wired-up trigger-bfs+segmenter comp kernel.
+- **Submission slot used D15**: pushed `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3`
+  v1 (kernel COMPLETE in ~25s CPU); submitted at 2026-05-13 12:29 UTC,
+  PENDING. The new comp kernel is `experiments/exp008_trigger_bfs_seg/`
+  with an `experiments/exp008_trigger_bfs_seg/build_notebook.py` builder
+  script so we don't hand-edit JSON.
 
 ### Cumulative LB scoreboard
 
@@ -34,7 +37,7 @@
 | D5  | 2026-05-03 | exp006 MASTER v7 (FORGE v19 op_2 + extras)  | 0.21  | +0.02              |
 | D6  | 2026-05-04 | exp007 Goose CNN v1 (Track G, GPU)          | 0.00  | -0.19 (silent crash) |
 | D9  | 2026-05-07 | exp007 Goose CNN v2 (CPU + try/except)      | **0.17** | -0.02            |
-| D15 | 2026-05-13 | (build-only: frame-segmenter port)          | -     | -                  |
+| D15 | 2026-05-13 | exp008 trigger-bfs + segmenter (D10+D11 port) | PENDING | target +0.11..+0.17 |
 
 ### Goose v2 interpretation (per the D9 decision rule)
 
