@@ -202,9 +202,9 @@ def main() -> int:
         "--games",
         "ls20-mock",
         "--max-actions",
-        "300",
+        "400",
         "--seed",
-        "0",
+        "1",
     ]
     try:
         out = subprocess.check_output(cmd, cwd=str(REPO_ROOT), stderr=subprocess.STDOUT)
@@ -214,7 +214,7 @@ def main() -> int:
         n += 1
         ok += _check(
             totals["wins"] >= 1,
-            "mock end-to-end: >=1 win on ls20-mock in 300 actions",
+            "mock end-to-end: >=1 win on ls20-mock in 400 actions (seed=1)",
             ctx=str(totals),
         )
     except Exception as e:

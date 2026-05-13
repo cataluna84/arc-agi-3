@@ -658,9 +658,9 @@ Decision rule (after v2 LB lands):
 - LB ≤ 0.05 → still failing silently; cell-by-cell diff vs StochasticGoose
   1st-place repo (`DriesSmit/ARC3-solution`, 12.58% private LB).
 
-### 2.3 D10 — Frame-segmenter port (revised 2026-05-07)
+### 2.3 D10+D11 — Frame-segmenter port (Done 2026-05-13)
 
-#### Goal (revised)
+#### Goal (revised) — DONE
 Build day. Port the dolphin-in-a-coma frame-segmentation algorithm from
 the graph-exploration paper (Rudakov 2026, arXiv:2512.24156). The paper
 reports their approach solves 19/52 levels ≈ **0.36 LB** on the private
@@ -670,6 +670,18 @@ ACTION6 click-coord sampling in `agents/trigger_bfs_agent.py`.
 
 (Original "Go-Explore archive" remains as a fallback if the
 frame-segmenter underperforms, but it is no longer the primary D10 goal.)
+
+#### Done 2026-05-13
+- `agents/frame_segmenter.py` (~440 LOC): stateless port. Public:
+  `segment_frame`, `identify_status_bars`,
+  `frame_segments_to_priority_tiers`, `hash_masked_frame`,
+  `mask_to_click_coords`, `salient_pixels_in_segment`.
+- `tests/test_frame_segmenter.py` (11 tests, all PASS).
+- `agents/trigger_bfs_agent.py` `_sample_click_xy` wired to walk tiers
+  0..3 (skip tier 4 = status bars); within each tier, pick a
+  non-dominant segment, then a uniform pixel within it. Defensive
+  try/except.
+- Smokes 22/22, full test suite 54/54, ruff clean.
 
 #### Files
 - CREATE: `agents/go_explore.py` (Archive + GoStep + ExploreStep)
@@ -1126,9 +1138,9 @@ If any fail at commit time, **fix locally before pushing**.
 |  D6 | NO      | -                                              |           - |
 |  D7 | YES     | `cataluna84/bfs-state-graph-comp-arc-agi-3`    |        0.36 |
 |  D8 | NO      | -                                              |           - |
-|  D9 | YES     | `cataluna84/goose-cnn-comp-arc-agi-3` v2 (CPU + try/except + level>=0 guard) — Done 2026-05-07; v1 LB=0.00, v2 PENDING |   0.20-0.30 |
-| D10 | NO      | -    (build) `agents/frame_segmenter.py` per arXiv:2512.24156 (per-color CC + 5-tier saliency) |           - |
-| D11 | NO      | -    (build) wire frame-segmenter into `trigger_bfs` ACTION6 prior; smoke + dev kernel only |           - |
+|  D9 | YES     | `cataluna84/goose-cnn-comp-arc-agi-3` v2 (CPU + try/except + level>=0 guard) — Done 2026-05-07; v1=0.00, v2=**0.17** |   0.20-0.30 |
+| D10 | NO      | -    (build) `agents/frame_segmenter.py` per arXiv:2512.24156 — Done 2026-05-13 (~440 LOC + 11 tests) | - |
+| D11 | NO      | -    (build) trigger_bfs ACTION6 prior wired to segmenter tiers — Done 2026-05-13 (22/22 smoke) | - |
 | D12 | YES     | `cataluna84/forge-v20-comp-arc-agi-3`          |        0.42 |
 | D13 | NO      | -                                              |           - |
 | D14 | NO      | -                                              |           - |

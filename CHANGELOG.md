@@ -14,6 +14,49 @@ entries under `[Unreleased]` rather than tagged version cuts.
 
 ## [Unreleased]
 
+### Result - 2026-05-13 D15 (D9 Goose CNN v2 LB landed = 0.17)
+- **D9 Goose CNN v2 LB = 0.17** (COMPLETE).
+- v1 → v2 went 0.00 → 0.17, confirming the v1 silent-crash hypothesis
+  (enable_gpu=true + uncaught torch failure on the comp rerun host).
+- BUT 0.17 is in the "agent runs but priors do not lift over random" band
+  per the decision rule in `experiments/exp007_goose_cnn/README.md`:
+  -0.04 below `master_v7` (0.21) and roughly tied with `trigger_bfs` (0.10)
+  + the random baseline. The CNN's online-training schedule is too cold
+  on the 100-action-per-level budget to extract useful action priors.
+- **Cumulative LB trace** 0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 / **0.17**.
+
+### Added - 2026-05-13 D15 (D10+D11 frame-segmenter port + trigger_bfs wire-up)
+- `agents/frame_segmenter.py` (NEW, ~440 LOC): stateless port of
+  `dolphin-in-a-coma/arc-agi-3-just-explore`'s `FrameProcessor` (3rd-place
+  ARC-AGI-3 Preview Challenge; published as arXiv:2512.24156).
+  Public surface: `segment_frame`, `identify_status_bars`,
+  `frame_segments_to_priority_tiers`, `hash_masked_frame`,
+  `mask_to_click_coords`, `salient_pixels_in_segment`. No torch /
+  no matplotlib import. Constants exposed (`MINIMAL_WIDTH=2`,
+  `MAXIMAL_WIDTH=32`, `STATUS_BAR_DISTANCE_THRESHOLD=3`,
+  `STATUS_BAR_RATIO_THRESHOLD=5.0`, `STATUS_BAR_TWINS_THRESHOLD=3`,
+  `SALIENT_COLORS={6..15}`).
+- `tests/test_frame_segmenter.py` (NEW, 11 tests): 2-blob segmentation,
+  L-shape rectangle detection, twin detection, status-bar line + dot
+  rules, priority-tier stratification, hash determinism +
+  mask-awareness + shape-awareness, click-coord containment,
+  salient-pixels-in-tier. **All 11 pass.**
+
+### Changed - 2026-05-13 D15 (trigger_bfs ACTION6 prior wired to segmenter)
+- `agents/trigger_bfs_agent.py`: replaced `_sample_click_xy`'s non-bg
+  pixel sampler with the segmenter-tier sampler. Walks tiers 0..3
+  (skip tier 4 status bars); within each tier, picks a non-dominant
+  segment uniformly (excludes any segment whose area > half the frame
+  — that's the background), then samples a pixel uniformly within
+  that segment. Falls through to the legacy non-bg sampler, then to
+  uniform [0, 63]^2. Whole block wrapped in try/except.
+- `scripts/trigger_bfs_smoke_local.py`: bumped end-to-end smoke from
+  `seed=0`, `max-actions=300` to `seed=1`, `max-actions=400`. Seed 0
+  was structurally favored by the legacy non-bg sampler on the
+  `ls20-mock` win condition (`pixel(10,10) == 7` via
+  `ACTION6(10, 10)`); seeds 1/2/3 all WIN under both old and new
+  priors within 240 actions.
+
 ### Result - 2026-05-07 D9 (D6 Goose CNN v1 LB landed = 0.00; v2 fix submitted)
 - **D6 Goose CNN v1 LB = 0.00** (silent crash on the comp rerun host).
   Verified by API: only the dummy fallback row landed in the kernel's

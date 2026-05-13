@@ -84,15 +84,55 @@ def _action_priority(action_id: int) -> tuple[int, int]:
 
 
 def _sample_click_xy(layers: list | None, rng: random.Random) -> dict[str, int]:
-    """Pick (x, y) from non-background pixels; fallback uniform."""
+    """Pick (x, y) for ACTION6 using the frame-segmenter saliency tiers.
+
+    Priority order (per arXiv:2512.24156, D10 frame-segmenter port):
+      1. Tier 0 (salient color + medium width)    — most likely interactive
+      2. Tier 1 (medium width, non-salient color)
+      3. Tier 2 (salient color, extreme size)
+      4. Tier 3 (everything else, non-status-bar)
+      5. Non-background pixels (legacy v1 prior)
+      6. Uniform [0, 63] x [0, 63]
+
+    Within each tier the dominant-background segment (the one whose area
+    is more than half the frame) is excluded; pixels are then sampled
+    by first picking a segment uniformly, then a pixel uniformly within
+    that segment — this concentrates clicks on individual objects
+    rather than diluting them across the whole tier.
+
+    The segmenter is wrapped in try/except so any failure falls through
+    to the legacy non-bg sampler (defensive per gotcha #17).
+    """
     try:
         import numpy as np
+
+        from . import frame_segmenter as fs
 
         if not layers:
             raise ValueError("no layers")
         grid = _to_ndarray(layers[-1])
         if grid is None or grid.ndim != 2:
             raise ValueError("bad grid")
+
+        label_map, segments = fs.segment_frame(grid)
+        _sb_mask, sb_groups = fs.identify_status_bars(label_map, segments)
+        sb_ids: set[int] = set()
+        for g in sb_groups:
+            sb_ids.update(g)
+        tiers = fs.frame_segments_to_priority_tiers(segments, status_bar_segment_ids=sb_ids)
+
+        frame_pixels = grid.shape[0] * grid.shape[1]
+        half = frame_pixels // 2
+
+        for tier_idx in range(4):
+            tier_sids = [sid for sid in tiers[tier_idx] if segments[sid].area <= half]
+            if not tier_sids:
+                continue
+            chosen_sid = rng.choice(tier_sids)
+            coord = fs.mask_to_click_coords(label_map, chosen_sid, rng=rng)
+            if coord is not None:
+                return {"x": coord[0], "y": coord[1]}
+
         bg = int(np.bincount(grid.flatten(), minlength=16).argmax())
         ys, xs = np.where(grid != bg)
         if len(xs) > 0:
