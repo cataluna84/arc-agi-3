@@ -63,47 +63,43 @@ experiments/expNNN_<short-slug>/
 
 ## Phase 1 — Core search + learning agents
 
-### exp005_trigger_aware_bfs_v1
+### exp005_trigger_bfs (Track E)
 
-- **Hypothesis**: A clean Trigger-Aware BFS with state hashing + graph dedup will score **≥ 0.30** (Δ ≥ +0.11 over our 0.19 baseline).
+- **Hypothesis (D5)**: A clean Trigger-Aware BFS with state hashing + graph dedup will score **≥ 0.30** (Δ ≥ +0.11 over our 0.19 baseline).
 - **Approach**:
-  - State hash = `xxhash64(uint8(grid).tobytes())` (or blake2b if xxhash unavailable in offline env)
-  - Action queue = priority deque; priority = `trigger_score(state) + count_untried_actions(state)`
-  - `trigger_score = abs(Δpixel_count) + 2·new_color_present + 5·levels_completed_changed`
-  - State graph reset on `levels_completed` increment
-- **Smoke**: passes ls20 tutorial; finishes in < 30 s on 1 game.
-- **DoD**: ≥ 0.30 on Kaggle.
+  - State hash = `blake2b(uint8(grid).tobytes(), digest_size=16)`.
+  - Action queue = priority deque; priority = `trigger_score(state) + count_untried_actions(state)`.
+  - `trigger_score = abs(Δpixel_count) + 2·new_color_present + 5·levels_completed_changed`.
+  - State graph reset on `levels_completed` increment.
+- **Submission (D5, 2026-05-03)**: kernel `cataluna84/trigger-bfs-comp-arc-agi-3` v1.
+- **Result**: **LB = 0.21** (Δ = +0.02). The BFS frontier dedup helps marginally over random (0.18) and just-explore (0.19), but the ACTION6 uniform-pixel sampling wastes most of the action budget on cells that produce no frame change. This motivated the D10+D11 frame-segmenter port (exp008).
 
-### exp006_stochastic_goose_pp
+### exp006_master_v7 (Track F — superseded)
 
-- **Hypothesis**: Re-implement StochasticGoose's CNN + change-prediction with the v0.9.3 SDK and tighten the per-level reset → **≥ 0.32** (Δ ≥ +0.13).
-- **Approach**: 16-channel one-hot 64×64 input, 4-layer CNN (32→64→128→256), 5-way action head + 64×64 conv coordinate head, BCE on `frame_changed`. Hash-deduped 200K buffer. Reset on level transition.
-- **DoD**: ≥ 0.32 on Kaggle.
+- **Status**: shelved. The `experiments/exp006_master_v7/` folder is untracked locally (Droid-Shield blocked) and the per-day SPEC re-purposed the D6 slot for the Goose CNN exp007 build (Track G).
 
-### exp007_hybrid_search_and_learn
+### exp007_goose_cnn (Track G — re-implementation of StochasticGoose)
 
-- **Hypothesis**: Combining BFS frontier with CNN frame-change prior in a single agent → **≥ 0.35** (Δ ≥ +0.16; matches "Hybrid Search-and-Learn" public notebook).
-- **Approach**:
-  - When BFS visits a new state, query CNN(state) → `p_change(action)`.
-  - Insert action `a` into the BFS frontier with priority `α·p_change[a] + β·trigger_score` (α=2, β=1).
-  - For ACTION6, sample top-k click coords from the conv coord head.
-- **DoD**: ≥ 0.35 on Kaggle.
+- **Hypothesis (D6)**: Re-implement StochasticGoose's CNN + change-prediction with the v0.9.3 SDK and tighten the per-level reset → **≥ 0.32** (Δ ≥ +0.13).
+- **Approach**: 16-channel one-hot 64×64 input, 4-layer CNN (32→64→128→256), 5-way action head + 64×64 conv coordinate head, BCE on `frame_changed`. Hash-deduped 50K buffer (200K upstream; we trim for 6h wall budget). Reset on level transition. Defensive `try/except` around forward pass + outer `choose_action`.
+- **v1 result (D6, 2026-05-04)**: **LB = 0.00**. Silent crash on comp rerun host. Inferred cause: `enable_gpu=true` + unguarded `predictor.predict()`. See gotchas #17 + #19.
+- **v2 result (D9, 2026-05-07 → 2026-05-13)**: **LB = 0.17**. `enable_gpu=false` + outer `try/except` + `cur_levels >= 0` guard. Agent runs end-to-end but 100-action / level budget is too cold for the CNN to specialize. Decision rule routes us to **structural priors** (exp008).
 
 ---
 
 ## Phase 2 — Object-centric & world-model
 
-### exp008_segmentation_clickable_objects
+### exp008_trigger_bfs_seg (Track J — frame-segmenter prior, current)
 
-- **Hypothesis**: Replacing 64×64 ACTION6 sampling with click-on-object centroids reduces wasted actions by >30% → **≥ 0.40** (Δ ≥ +0.21).
+- **Hypothesis (D10-D15)**: Replacing 64×64 uniform-random ACTION6 sampling with click-on-non-dominant-segment-centroid (per the dolphin-in-a-coma frame-segmentation algorithm, arXiv:2512.24156) reduces wasted no-op clicks → **≥ 0.30** (Δ ≥ +0.11 over the 0.19 baseline / +0.09 over trigger_bfs v0). Stretch target is 0.30-0.36 since the paper reports the same approach solving 19/52 public levels.
 - **Approach**:
-  - Per-frame, run connected-component labeling per color (scipy `label` + `find_objects`).
-  - Maintain `Object{id, color, bbox, centroid, size}`.
-  - For ACTION6: sample objects weighted by (size·saliency_tier_inverse).
-  - Saliency_tier from Just-Explore heuristic: bigger + non-edge + non-status-bar → higher tier.
-- **DoD**: ≥ 0.40 on Kaggle.
+  - Per-frame, `agents/frame_segmenter.py.segment_frame()`: per-color connected components (8-connectivity), then `frame_segments_to_priority_tiers()` assigns each segment to a 5-tier ladder (0=salient_medium, 1=medium, 2=salient_large, 3=large, 4=status/background).
+  - `agents/trigger_bfs_agent.py._sample_click_xy()` walks tiers 0..3 in order, excludes segments whose area > half-frame (dominant background), then samples a random segment from the highest non-empty tier and a random pixel within that segment.
+  - Defensive try/except: on any exception, falls through to the legacy non-background sampler, then to uniform.
+- **Submission (D15, 2026-05-13)**: kernel `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1. Kernel COMPLETE in ~25s on CPU. Submitted at 12:29 UTC.
+- **Status**: **PENDING**.
 
-### exp009_mcts_neural_prior
+### exp009_mcts_neural_prior (backlog)
 
 - **Hypothesis**: AlphaZero-lite (MCTS + StochasticGoose CNN as prior) breaks **≥ 0.45** (Δ ≥ +0.26).
 - **Approach**:

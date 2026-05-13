@@ -36,6 +36,24 @@ upstream projects, each of which retains its own copyright and license:
   Local adaptations live in agents/forge_agent.py.
   https://www.kaggle.com/code/ashvinsingh/ash-s-arc-agi-3-agent
 
+* dolphin-in-a-coma / arc-agi-3-just-explore (frame segmenter)
+  Copyright (c) 2026 dolphin-in-a-coma
+  Licensed under the MIT License
+  https://github.com/dolphin-in-a-coma/arc-agi-3-just-explore
+  Our agents/frame_segmenter.py is a stateless Python port of the
+  FrameProcessor algorithm from this project: per-color connected
+  components, 5-tier saliency, and a two-rule status-bar detector.
+  No torch / matplotlib dependency in our port; pure numpy + dataclasses.
+
+* "Exploring the ARC-AGI-3 environment" (Rudakov 2026)
+  Pierre Rudakov, Andrey Rudakov. arXiv:2512.24156, 2026.
+  https://arxiv.org/abs/2512.24156
+  Our agents/frame_segmenter.py + agents/trigger_bfs_agent.py implement
+  the structural-prior approach described in this paper (frame
+  segmentation + BFS over state-hash graph). The paper reports the same
+  approach solving 19/52 public ARC-AGI-3 levels (a strict superset of
+  pure-random's 6), which sets the LB target for our exp008.
+
 * Kaggle CLI / kagglehub
   Copyright (c) 2014-2026 Kaggle Inc.
   Licensed under the Apache License, Version 2.0

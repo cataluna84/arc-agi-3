@@ -124,16 +124,30 @@ if cur_levels >= 0 and cur_levels != self._prev_levels:
 D9 submission: `cataluna84/goose-cnn-comp-arc-agi-3` v2, kernel COMPLETE
 in ~40s on CPU (vs the failed GPU init). Submitted via
 `kaggle competitions submit arc-prize-2026-arc-agi-3 -k cataluna84/goose-cnn-comp-arc-agi-3 -v 2 -f submission.parquet`
-at 2026-05-08 00:23 UTC. Status: PENDING.
+at 2026-05-08 00:23 UTC.
 
-## Decision rule (after v2 LB result lands)
+## v2 result (2026-05-13 D15) — LB 0.17
 
-- If LB ≥ 0.20: v1 0.00 was a packaging bug, confirmed. Move forward to
-  D10 frame-segmentation port (per `arXiv:2512.24156`) and consider
-  Goose-as-ensemble-prior for master kernel.
-- If 0.10 ≤ LB < 0.20: agent runs but priors do not lift over random;
-  retrain CNN with longer warm-up or restrict to ACTION6 click prior.
-- If LB ≤ 0.05: still failing silently. Compare cell-by-cell against the
-  StochasticGoose 1st-place repo (`DriesSmit/ARC3-solution`, 12.58%
-  private LB) for additional packaging differences (action timeout,
-  numpy version, action enum coercion).
+The v2 submission landed at **LB = 0.17** (band 2 of the decision rule
+below). This **confirms the packaging-bug hypothesis from v1=0.00**:
+- defensive `try/except` + `enable_gpu=false` is sufficient to run the
+  full agent end-to-end on the comp rerun host;
+- but the priors learned in 100 actions/level (the cold-start budget)
+  do NOT lift over the trigger_bfs v0 baseline (0.21, D5) or even the
+  vanilla just-explore baseline (0.19, D1). The CNN never gets enough
+  state-action pairs for the action / coord heads to specialize within
+  a single level before the budget exhausts.
+
+## Decision rule outcome
+
+- ~~If LB ≥ 0.20: v1 0.00 was a packaging bug~~ → ~~0.17 close, not quite~~.
+- **If 0.10 ≤ LB < 0.20: agent runs but priors do not lift over random.**
+  → confirmed. Per the decision rule, we **pivot to a structural prior**
+  (the frame-segmenter port of arXiv:2512.24156) rather than retraining
+  the CNN harder. The segmenter is exp008.
+- ~~If LB ≤ 0.05: still failing silently~~ → ruled out.
+
+The goose CNN module is preserved in `agents/goose_agent.py` for
+potential future use as an *ensemble prior* on top of a stronger
+structural baseline, but is **not** being iterated as a standalone
+agent past D9. Subsequent work (D10+D11) is in `experiments/exp008_trigger_bfs_seg/`.

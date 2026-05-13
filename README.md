@@ -14,12 +14,21 @@
 
 [comp]: https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3
 
-**Current state**: bootstrapping. Baseline LB = **0.19** (vanilla fork of an
-upstream public Kaggle notebook implementing FORGE v19, BFS + ForgeNet CNN;
-see [NOTICE](NOTICE) for the upstream credit). The fork was submitted on
-2026-04-29 and landed at **rank 398** on the public LB. All "delta over
-baseline" deltas downstream are measured against this **0.19** number.
-See [`.factory/memories.md`](.factory/memories.md) for the running narrative.
+**Current state** (D15, 2026-05-13): 9 daily slots submitted; LB trace
+**0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 / 0.17 / PENDING**. Best to
+date is D3's variance probe at 0.24. D9 confirmed the silent-crash
+hypothesis on Goose CNN v1 (0.00 → v2 0.17 with `enable_gpu=false`
+plus defensive `try/except`). D10+D11 ported the dolphin-in-a-coma
+frame-segmentation algorithm (arXiv:2512.24156, MIT) into
+`agents/frame_segmenter.py` and wired it as the ACTION6 click-coord
+prior in `agents/trigger_bfs_agent.py`; D15 submitted the wired-up
+agent as `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 with
+target LB 0.30-0.36. Baseline anchor remains **LB 0.19** (vanilla
+fork of an upstream public Kaggle notebook implementing FORGE v19;
+see [NOTICE](NOTICE) for upstream credit + paper attributions). All
+"delta vs baseline" deltas are measured against this **0.19** number.
+See [`.factory/memories.md`](.factory/memories.md) for the running
+narrative and [CHANGELOG.md](CHANGELOG.md) for user-visible changes.
 
 ---
 
@@ -112,14 +121,22 @@ arc-agi-3/
 |   |-- greedy_explore_agent.py     # baseline 2: empirical change-rate epsilon-greedy
 |   |-- forge_agent.py              # adapter for the verbatim FORGE port
 |   |-- _forge_v19.py                # VENDORED: bit-for-bit FORGE v19 cell #1 - do not edit
-|   `-- qwen_agent.py               # Qwen3.6-35B-A3B vision-language agent (exp004)
+|   |-- qwen_agent.py               # Qwen3.6-35B-A3B vision-language agent (exp004)
+|   |-- trigger_bfs_agent.py        # trigger-aware BFS over state-hash graph (exp005)
+|   |-- goose_agent.py              # Stochastic-Goose-style CNN with conv coord head (exp007)
+|   |-- state_graph.py              # state-hash graph + trigger scoring used by trigger_bfs
+|   `-- frame_segmenter.py          # stateless port of dolphin-in-a-coma frame-segmentation (exp008)
 |-- experiments/
 |   |-- EXPERIMENTS.md              # tracker of all expNNN folders
+|   |-- SPEC_4WEEKS.md              # 4-week per-day SPEC with kernel slugs + targets + outcomes
 |   |-- local_runner.py             # offline smoke harness (mock + arc-agi SDK fallback)
-|   |-- exp001_baseline_forge/      # the 0.19 LB anchor (vanilla fork)
-|   |-- exp002_forge_variance_probe/ # variance probe for the FORGE baseline
+|   |-- exp001_baseline_forge/      # LB 0.19 anchor (vanilla FORGE v19 fork)
+|   |-- exp002_forge_variance_probe/ # variance probe for the FORGE baseline (LB 0.24)
 |   |-- exp003_baseline_just_explore/   # orthogonal reference baseline
-|   |-- exp004_qwen_agent/          # Qwen3.6-35B-A3B agent + bundling kernels (active)
+|   |-- exp004_qwen_agent/          # Qwen3.6-35B-A3B vision-language agent (LB 0.10)
+|   |-- exp005_trigger_bfs/         # trigger-aware BFS v0 (LB 0.21)
+|   |-- exp007_goose_cnn/           # Goose CNN v1 (0.00) -> v2 (0.17)
+|   |-- exp008_trigger_bfs_seg/     # trigger_bfs + frame-segmenter (D15 submitted, PENDING)
 |   |-- kernel_h100_probe/          # sanity probe of Kaggle's H100 image
 |   `-- kernel_qwen_bridge_probe/   # probes HF -> Kaggle bridge feasibility
 |-- scripts/
@@ -179,10 +196,11 @@ The rhythm of the project is one Kaggle daily slot per day:
    ```bash
    uv run kaggle kernels push -p experiments/expNNN_<slug>/dev_kernel
    ```
-5. Submit on Kaggle (this **burns the daily slot**):
+5. Submit on Kaggle (this **burns the daily slot**; note the CLI
+   subcommand is `submit`, not `submit-code` — see gotcha #15):
    ```bash
-   uv run kaggle competitions submit-code -c arc-prize-2026-arc-agi-3 \
-       --kernel cataluna84/<comp-kernel> --kernel-version <N> \
+   uv run kaggle competitions submit arc-prize-2026-arc-agi-3 \
+       -k cataluna84/<comp-kernel> -v <N> \
        -f submission.parquet -m "expNNN: <one-liner>"
    ```
 6. After the LB result lands, append a dated section to the **top** of
@@ -200,8 +218,11 @@ For tomorrow's specific runbook, see
 | --- | --- | --- | --- |
 | `RandomAgent` | `agents/random_agent.py` | uniform over `available_actions`; ACTION6 click is uniform-random | working |
 | `GreedyExploreAgent` | `agents/greedy_explore_agent.py` | epsilon-greedy on per-action empirical frame-change rate | working |
-| `ForgeAgent` | `agents/forge_agent.py` | adapter around verbatim FORGE v19 (BFS + ForgeNet CNN) | working (CPU + CUDA) |
-| `QwenAgent` | `agents/qwen_agent.py` | vision-language MoE: image + hex grid + history -> ACTION (`Qwen3.6-35B-A3B` BF16) | scaffolded; awaiting H100 dev kernel run |
+| `ForgeAgent` | `agents/forge_agent.py` | adapter around verbatim FORGE v19 (BFS + ForgeNet CNN) | LB 0.19 / 0.21 (D1, D4) |
+| `QwenAgent` | `agents/qwen_agent.py` | vision-language MoE: image + hex grid + history -> ACTION (`Qwen3.6-35B-A3B` BF16) | LB 0.10 (D5); LLM-as-direct-policy is structurally worse than random (see gotcha #18) |
+| `TriggerBFSAgent` | `agents/trigger_bfs_agent.py` | trigger-aware BFS over state-hash graph; ACTION6 click coords come from `frame_segmenter` 5-tier saliency | LB 0.21 (D5 v0); segmenter prior wired D11 (exp008 PENDING) |
+| `GooseAgent` | `agents/goose_agent.py` | Stochastic-Goose-style 4-layer CNN with conv coord head, BCE on `frame_changed` over a 200K hash-dedup buffer | LB 0.00 v1 (D6) → 0.17 v2 (D9) after `enable_gpu=false` + defensive `try/except` |
+| `frame_segmenter` (lib) | `agents/frame_segmenter.py` | stateless port of the dolphin-in-a-coma frame-segmentation algorithm (arXiv:2512.24156, MIT): per-color connected components, 5-tier saliency, status-bar detection | used by `TriggerBFSAgent` for ACTION6 click coords |
 
 The agent contract is documented at the top of
 [`agents/__init__.py`](agents/__init__.py). Adding a new agent is
