@@ -14,16 +14,20 @@
 
 [comp]: https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3
 
-**Current state** (D16, 2026-05-14): 8 scored submissions; LB trace
-**0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 / 0.17 / 0.12**. Best to
-date is D3's variance probe at 0.24. D9 confirmed the silent-crash
+**Current state** (D16, 2026-05-14): 8 scored submissions + 1 pending
+D16 safety resubmit; LB trace **0.19 / 0.00 / 0.24 / 0.10 / 0.21 /
+0.00 / 0.17 / 0.12 / PENDING**. Best to date is D3's variance probe at
+0.24. D9 confirmed the silent-crash
 hypothesis on Goose CNN v1 (0.00 → v2 0.17 with `enable_gpu=false`
 plus defensive `try/except`). D10+D11 ported the dolphin-in-a-coma
 frame-segmentation algorithm (arXiv:2512.24156, MIT) into
 `agents/frame_segmenter.py` and wired it as the ACTION6 click-coord
 prior in `agents/trigger_bfs_agent.py`; D15's wired-up submission
 landed at **LB 0.12**, so the segmenter prior alone is a marginal
-+0.02 over trigger-bfs v0 but below Goose v2 and master_v7. Baseline
++0.02 over trigger-bfs v0 but below Goose v2 and master_v7. D16's
+slot was used on a FORGE variance safety resubmit of the best-known
+completed kernel (`ash-s-arc-agi-3-agent` v2, prior LB 0.24) while the
+fresh unchanged v3 rerun remains queued. Baseline
 anchor remains **LB 0.19** (vanilla
 fork of an upstream public Kaggle notebook implementing FORGE v19;
 see [NOTICE](NOTICE) for upstream credit + paper attributions). All
@@ -124,6 +128,8 @@ arc-agi-3/
 |   |-- _forge_v19.py                # VENDORED: bit-for-bit FORGE v19 cell #1 - do not edit
 |   |-- qwen_agent.py               # Qwen3.6-35B-A3B vision-language agent (exp004)
 |   |-- trigger_bfs_agent.py        # trigger-aware BFS over state-hash graph (exp005)
+|   |-- graph_explorer.py           # priority-threshold scheduler prototype (exp009)
+|   |-- graph_explorer_agent.py     # GraphExplorerAgent wrapper (not submission-ready)
 |   |-- goose_agent.py              # Stochastic-Goose-style CNN with conv coord head (exp007)
 |   |-- state_graph.py              # state-hash graph + trigger scoring used by trigger_bfs
 |   `-- frame_segmenter.py          # stateless port of dolphin-in-a-coma frame-segmentation (exp008)
@@ -138,6 +144,7 @@ arc-agi-3/
 |   |-- exp005_trigger_aware_bfs/   # trigger-aware BFS v0 (LB 0.10)
 |   |-- exp007_goose_cnn/           # Goose CNN v1 (0.00) -> v2 (0.17)
 |   |-- exp008_trigger_bfs_seg/     # trigger_bfs + frame-segmenter (LB 0.12)
+|   |-- exp010_forge_variance_resubmit/ # D16 safety resubmit (PENDING)
 |   |-- kernel_h100_probe/          # sanity probe of Kaggle's H100 image
 |   `-- kernel_qwen_bridge_probe/   # probes HF -> Kaggle bridge feasibility
 |-- scripts/

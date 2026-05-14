@@ -53,3 +53,13 @@ After each LB result lands, append to `.factory/memories.md` (top of file) a sec
 - Wall clock: ~<minutes>
 - Decision: continue / pivot
 ```
+
+## D16 safety resubmit
+
+On 2026-05-14, the user requested a submission today. The new D16
+workstreams (Qwen RTX6000 load path and GraphExplorer prototype) were
+still dev-only, so we used the low-risk FORGE variance lane. A fresh
+unchanged v3 rerun of `cataluna84/ash-s-arc-agi-3-agent` was pushed but
+remained queued; to ensure the daily slot was actually consumed, we
+submitted the last completed best-known version, v2 (prior LB 0.24), at
+14:46 UTC. See `experiments/exp010_forge_variance_resubmit/README.md`.

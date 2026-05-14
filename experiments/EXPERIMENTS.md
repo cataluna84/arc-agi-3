@@ -105,7 +105,14 @@ experiments/expNNN_<short-slug>/
 - **Implementation**: `agents/graph_explorer.py`, `agents/graph_explorer_agent.py`, and `tests/test_graph_explorer.py` (7 tests).
 - **Local result**: mock `ls20-mock` WIN in 132 actions, but SDK diagnostics on all 25 mounted public games still solved **0 levels** (seed=1, max-actions=400). Do **not** submit this prototype yet; next debug target is parity with the reference action grouping / replay policy.
 
-### exp010_mcts_neural_prior (backlog)
+### exp010_forge_variance_resubmit (D16 safety submission)
+
+- **Hypothesis (D16)**: When no new candidate clears the local gate, resubmitting the best-known completed FORGE variance kernel is a low-risk way to use the daily slot and possibly recover the 0.24 high-water mark.
+- **Brainstorm result**: FORGE variance v2 (known 0.24) outranked MASTER v7 (0.21), Goose v2 (0.17), GraphExplorer prototype (local 0/25 levels), and Qwen direct policy (not guarded yet).
+- **Submission (D16, 2026-05-14)**: submitted `cataluna84/ash-s-arc-agi-3-agent` v2 at 14:46 UTC (ref `52653061`). A fresh unchanged v3 rerun was pushed first but remained queued, so v2 was used to ensure today's competition slot was actually utilized.
+- **Status**: **PENDING**.
+
+### exp011_mcts_neural_prior (backlog)
 
 - **Hypothesis**: AlphaZero-lite (MCTS + StochasticGoose CNN as prior) breaks **≥ 0.45** (Δ ≥ +0.26).
 - **Approach**:
@@ -117,7 +124,7 @@ experiments/expNNN_<short-slug>/
   - Reuse subtree on action commit (standard AlphaZero trick).
 - **DoD**: ≥ 0.45 on Kaggle.
 
-### exp011_dreamerv3_lite
+### exp012_dreamerv3_lite
 
 - **Hypothesis**: A 5–10M-param RSSM world model + actor-critic on imagined trajectories matches MCTS but generalizes better to deep levels → **≥ 0.45** with better game-coverage variance.
 - **Approach**:
@@ -130,13 +137,13 @@ experiments/expNNN_<short-slug>/
 
 ## Phase 3 — Test-time training, DSL synthesis, slot world models
 
-### exp012_ttt_tiny_recursive_model
+### exp013_ttt_tiny_recursive_model
 
 - **Hypothesis**: A 7M–10M-parameter Tiny Recursive Model (TRM-style) **pre-trained offline** on ARC-AGI-1/2 + public ARC-AGI-3 traces, then **full-FT for 1k steps in-game**, breaks **≥ 0.50**.
 - **Approach**: ports McGovern's "Test-time Adaptation of Tiny Recursive Models" (arxiv 2511.02886) to interactive trajectories: input = (prev_frame, action, next_frame) triples, output = a small recursive controller predicting (next_action_logits, next_frame_delta).
 - **DoD**: ≥ 0.50 on Kaggle.
 
-### exp013_dsl_program_synthesis
+### exp014_dsl_program_synthesis
 
 - **Hypothesis**: Stitch-style library learning + MDL prior over short programs explains repeating mechanics across levels → unlocks deep levels (5+).
 - **Approach**:
@@ -145,13 +152,13 @@ experiments/expNNN_<short-slug>/
   - Apply found program to predict reward-bearing action for level_n+1.
 - **DoD**: solves at least one level of depth ≥ 5 on `ls20` or `ft09` reproducibly.
 
-### exp014_slot_attention_world_model
+### exp015_slot_attention_world_model
 
 - **Hypothesis**: Slot Attention-encoded latents + GNN predictor learn relational dynamics → +0.05 over DreamerV3 lite.
 - **Approach**: 6-slot attention encoder over 16-channel one-hot grid, GNN (PyG) on slots → next-slot prediction. Plan in slot space with beam search width 8.
 - **DoD**: ≥ 0.52.
 
-### exp015_causal_intervention_planning
+### exp016_causal_intervention_planning
 
 - **Hypothesis**: Maintaining a posterior over (object, action) → effect edges and using info-gain to pick the next action solves "puzzle" style games faster.
 - **Approach**: For each (object_id, action_idx) keep `p_changes_object` (Beta posterior). At each step, sample action-object pair maximizing expected `−H(p)` reduction.
@@ -161,17 +168,17 @@ experiments/expNNN_<short-slug>/
 
 ## Phase 4 — Composition / ensemble / push to LB top
 
-### exp016_per_game_dispatcher
+### exp017_per_game_dispatcher
 
 - **Hypothesis**: Different agents win on different games. Per-game dispatcher (heuristic on first 50 actions: "is this clicky?", "are there moving objects?", "is the grid fixed?") routes to the right specialist → +0.05 over best single agent.
 - **DoD**: ≥ 0.58.
 
-### exp017_offline_pretrained_warm_start
+### exp018_offline_pretrained_warm_start
 
 - **Hypothesis**: Pre-train DreamerV3-lite + DSL library on **public games + community replays** (downloaded from `three.arcprize.org/replay/...`) packaged as Kaggle Dataset → faster in-game adaptation.
 - **DoD**: ≥ 0.60.
 
-### exp018_local_llm_orchestrator
+### exp019_local_llm_orchestrator
 
 - **Hypothesis**: A local 7B-quantized Qwen2.5-Coder GGUF model used **only as orchestrator** (decides "explore", "test hypothesis X", "lock in plan Y") combined with the symbolic+neural agents pushes us into LB-top range.
 - **Approach**:
@@ -180,7 +187,7 @@ experiments/expNNN_<short-slug>/
   - Mirror RGB-Agent's analyzer/queue split (action_queue.py) but with the local model.
 - **DoD**: ≥ 0.65.
 
-### exp019_ensemble_with_action_efficiency_tiebreak
+### exp020_ensemble_with_action_efficiency_tiebreak
 
 - **Hypothesis**: Run BFS+CNN, MCTS, DreamerV3-lite, DSL synthesizer **in cascade** until any one wins each level, picking the agent with the lowest action count per level → final push toward 0.70+.
 - **Approach**:

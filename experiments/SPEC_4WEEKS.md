@@ -897,7 +897,9 @@ weights based on result.
 >
 > **Target LB by D21**: 0.45 – 0.50.
 >
-> **Submission days**: D17, D20. Build-only: D15, D16, D18, D19, D21.
+> **Original submission days**: D17, D20. Actual D16 was converted into a
+> safety submission after exp008 landed at 0.12 and the new GraphExplorer /
+> Qwen workstreams remained dev-only.
 
 ### 3.1 D15 — Object segmentation (connected components)
 
@@ -1147,7 +1149,7 @@ If any fail at commit time, **fix locally before pushing**.
 | D13 | NO      | -                                              |           - |
 | D14 | NO      | -                                              |           - |
 | D15 | NO      | -                                              |           - |
-| D16 | NO      | -                                              |           - |
+| D16 | YES     | `cataluna84/ash-s-arc-agi-3-agent` v2 (exp010 FORGE variance safety resubmit; submitted 2026-05-14 14:46 UTC, PENDING; fresh v3 rerun queued) | 0.19-0.24 |
 | D17 | YES     | `cataluna84/object-aware-comp-arc-agi-3`       |        0.43 |
 | D18 | NO      | -                                              |           - |
 | D19 | NO      | -                                              |           - |

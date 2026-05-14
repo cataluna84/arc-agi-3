@@ -23,12 +23,17 @@ and `experiments/exp002_forge_variance_probe/README.md`.
 | D6  | 2026-05-04 | exp007 Goose CNN v1 (silent crash)          | 0.00  | -0.19     |
 | D9  | 2026-05-07 | exp007 Goose CNN v2 (defensive + CPU)       | 0.17  | -0.02     |
 | D15 | 2026-05-13 | exp008 trigger-bfs + frame-segmenter        | 0.12  | -0.07     |
+| D16 | 2026-05-14 | exp010 FORGE variance safety resubmit       | PENDING | -       |
 
 Best to date: D3 (FORGE variance probe s3) at 0.24. The Goose CNN v2
 result (0.17 vs random 0.18) was the moment we pivoted from training
 priors → structural priors. Exp008 shows that a segmenter click prior
 alone is not enough; the next structural step must include the full
 GraphExplorer/action scheduler from the paper.
+
+D16 used the slot on a low-risk FORGE variance resubmit because both
+new D16 workstreams (Qwen RTX load path and GraphExplorer prototype)
+were still dev-only.
 
 ## Public LB top (as of 2026-04 snapshot)
 

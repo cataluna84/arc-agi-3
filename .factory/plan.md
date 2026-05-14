@@ -59,6 +59,8 @@ See: `experiments/exp001_baseline_forge/`.
 - D3 (2026-05-01): 0.24 (FORGE v2, Track A variance)
 - D4 (2026-05-02): 0.10 (exp005 Trigger-BFS — regression -0.14 vs D3)
 - D5 (2026-05-03): 0.21 (exp006 MASTER v7 — partial recovery, still below D3)
+- D15 (2026-05-13): 0.12 (exp008 trigger-bfs + segmenter — coord prior alone insufficient)
+- D16 (2026-05-14): PENDING (exp010 FORGE variance safety resubmit; slot used at 14:46 UTC)
 
 ### [x] D5 (2026-05-03): MASTER BASELINE v7 (exp006)
 

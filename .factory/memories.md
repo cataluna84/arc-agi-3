@@ -5,6 +5,46 @@
 
 ---
 
+## 2026-05-14 — D16 afternoon: brainstorm complete; today's submission slot used
+
+### Brainstorm
+
+Given the latest evidence, today's candidates ranked as:
+
+1. **FORGE variance safety resubmit** (`cataluna84/ash-s-arc-agi-3-agent`)
+   — best-known completed kernel previously scored 0.24; low risk.
+2. **MASTER v7 resubmit** — known 0.21, but lower than FORGE variance
+   high-water mark.
+3. **Goose v2 resubmit** — known 0.17; below safer alternatives.
+4. **GraphExplorer prototype** — local SDK diagnostic still 0/25 games,
+   0 levels; do not submit.
+5. **Qwen direct policy** — RTX 6000 load path works, but guarded
+   candidate/ranker policy is not ready; dev-only.
+
+Decision: use D16 on the low-risk FORGE variance lane so the requested
+submission happens today, while continuing GraphExplorer/Qwen as dev work.
+
+### Submission
+
+- Pulled the completed FORGE kernel to `/tmp/arc_agi3_forge_d16`.
+- Pushed an unchanged fresh rerun; Kaggle accepted it as
+  `cataluna84/ash-s-arc-agi-3-agent` **v3**, but it remained QUEUED.
+- To ensure the competition slot was actually used today, submitted the
+  last completed best-known version:
+  `kaggle competitions submit arc-prize-2026-arc-agi-3 -k
+  cataluna84/ash-s-arc-agi-3-agent -v 2 -f submission.parquet`.
+- Submission ref **52653061**, created **2026-05-14 14:46 UTC**,
+  status **PENDING**.
+
+Updated LB trace: **0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 / 0.17 /
+0.12 / PENDING**.
+
+### Next
+
+When the D16 result lands, update `exp010_forge_variance_resubmit` and
+the scoreboard. Meanwhile, debug GraphExplorer against the reference
+implementation before any GraphExplorer submission attempt.
+
 ## 2026-05-14 — D16 later: GraphExplorer Algorithm-1 prototype built, not submission-ready
 
 ### Built

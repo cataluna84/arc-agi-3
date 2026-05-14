@@ -14,6 +14,18 @@ entries under `[Unreleased]` rather than tagged version cuts.
 
 ## [Unreleased]
 
+### Submitted - 2026-05-14 D16 (FORGE variance safety resubmit)
+- Brainstormed D16 slot options and chose the low-risk FORGE variance
+  lane over GraphExplorer/Qwen because both new workstreams are still
+  dev-only.
+- Pushed an unchanged fresh rerun of
+  `cataluna84/ash-s-arc-agi-3-agent` as v3; it remained queued.
+- To ensure today's slot was used, submitted the best-known completed
+  version (`ash-s-arc-agi-3-agent` v2; prior LB 0.24) at
+  2026-05-14 14:46 UTC. Submission ref `52653061`, status PENDING.
+- Added `experiments/exp010_forge_variance_resubmit/README.md` with the
+  option ranking, commands, and decision rule.
+
 ### Result - 2026-05-14 D16 (exp008 segmenter prior LB)
 - `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 landed at
   **LB = 0.12**. This is only +0.02 over trigger-bfs v0 (0.10) and below
@@ -74,8 +86,8 @@ entries under `[Unreleased]` rather than tagged version cuts.
   `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 (note: Kaggle
   auto-slugged the title to `-segmenter-` instead of our configured
   `-seg-`; metadata updated to match). Status COMPLETE in ~25s on CPU.
-  Submitted at 2026-05-13 12:29 UTC; status PENDING. Decision rule in
-  the exp008 README based on the LB band that lands.
+  Submitted at 2026-05-13 12:29 UTC; later landed at LB 0.12 (see D16
+  result entry above).
 
 ### Added - 2026-05-13 D15 (D10+D11 frame-segmenter port + trigger_bfs wire-up)
 - `agents/frame_segmenter.py` (NEW, ~440 LOC): stateless port of
