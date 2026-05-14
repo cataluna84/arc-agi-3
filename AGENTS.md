@@ -144,8 +144,8 @@ Full convention details: [`.factory/rules/conventions.md`](.factory/rules/conven
 - **No internet during Kaggle competition eval.** All weights / binaries
   must be packaged as Kaggle Datasets and mounted via
   `dataset_sources` in `kernel-metadata.json`.
-- **6h wall clock cap** on Kaggle reruns -- leave a 1h buffer, target
-  <=5h actual compute.
+- **9h wall clock cap** on Kaggle CPU/GPU notebooks (2026-05-14
+  competition update) -- leave a 1h buffer, target <=8h actual compute.
 - **Pre-commit must pass before push.** The `gitleaks` hook is
   the last line of defence against accidentally committing tokens.
 - **Apache 2.0 obligations**: all eligible (prize-claimable) submissions

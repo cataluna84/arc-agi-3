@@ -48,12 +48,34 @@ print('CUDA available:', torch.cuda.is_available(),
 
 ## Hard rules
 
-1. **No internet calls** during eval. All weights/binaries must be packaged as Kaggle Datasets.
-2. **6h wall clock** total — leave 1h buffer; budget = 5h actual compute.
-3. **1 submission/day per submitter** — every notebook upload counts.
-4. **Submissions auto-generate** even on crashed runs (with zero scores). Always confirm a non-zero score.
-5. **CPU vs GPU vs T4 vs H100**: The Kaggle CLI exposes 12 accelerator types via `--accelerator` (P100, T4, T4Highmem, A100, L4, L4X1, **H100**, RtxPro6000, several TPUs). **H100 access has been verified for ARC-AGI-3-attached kernels on this account** — pushing with `--accelerator NvidiaH100` allocates a real H100 80 GB HBM3 (sm_90, Hopper) running `gcr.io/kaggle-gpu-images/python` (Python 3.12, torch 2.10.0+cu128, CUDA 12.8 / driver 13.0). See `runs/h100_probe/` for the probe results and `research/03_strategy_and_kaggle_compute_2026-04-29.md` for the full discovery. Important caveats:
+1. **No internet calls** during eval. All weights/binaries must be packaged
+   as Kaggle Datasets / Models or competition-provided inputs.
+2. **Notebook-only submissions**. The Kaggle page now requires submissions
+   through notebooks; the ARC-AGI-3 harness auto-generates the submission
+   file when the agent interacts with the environment.
+3. **Runtime cap is now 9h for CPU and GPU notebooks** (2026-05-14
+   update). Leave at least 1h buffer; budget target = <=8h actual compute.
+4. **External data / pretrained models must be freely and publicly
+   available** for prize-relevant submissions. Private code/model datasets
+   are acceptable for dev probes only, not for final prize-eligible kernels.
+5. **1 submission/day per submitter** — kernel pushes and dev/probe runs do
+   not burn the competition submission slot; `kaggle competitions submit`
+   does.
+6. **Submissions auto-generate** even on crashed runs (with zero scores).
+   Always confirm a non-zero score.
+7. **CPU vs GPU vs T4 vs H100 vs RTX 6000**: The Kaggle CLI exposes
+   accelerator types via `--accelerator` (P100, T4, T4Highmem, A100, L4,
+   L4X1, **H100**, **RtxPro6000**, several TPUs). **H100 access has been
+   verified for ARC-AGI-3-attached kernels on this account** — pushing with
+   `--accelerator NvidiaH100` allocates a real H100 80 GB HBM3 (sm_90,
+   Hopper) running `gcr.io/kaggle-gpu-images/python` (Python 3.12, torch
+   2.10.0+cu128, CUDA 12.8 / driver 13.0). **RTX 6000 (`g4-standard-48`) is
+   now explicitly announced for ARC-AGI-3-only notebooks with internet
+   disabled**; probe before relying on exact VRAM/package stack. See
+   `runs/h100_probe/` for the prior H100 probe results and
+   `experiments/exp004_qwen_agent/rtx6000_probe_kernel/` for the new RTX
+   probe scaffold. Important caveats:
    - The H100 image SHA is the SAME as the `gcr.io/kaggle-private-byod/python` image referenced in some kernels' metadata (just mirrored under different registry namespaces).
    - `machine_shape` in `kernel-metadata.json` (e.g. the upstream FORGE notebook declares `NvidiaTeslaT4`) is metadata-level and stale; the actual allocation is what `--accelerator` requests.
-   - Use H100 for compute-heavy paths (bundled small LLMs, DreamerV3, etc). Use CPU/T4 for BFS-bound agents (FORGE, Trigger-Aware BFS) where the bottleneck is Python-level state-space search, not GPU FLOPS.
+   - Use H100/RTX for compute-heavy paths (bundled LLMs, DreamerV3, etc). Use CPU/T4 for BFS-bound agents (FORGE, Trigger-Aware BFS) where the bottleneck is Python-level state-space search, not GPU FLOPS.
    - Quota for individual users is not publicly documented; the probe ran in ~14s without issue. Test small before committing.

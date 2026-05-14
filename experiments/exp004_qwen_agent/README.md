@@ -1,5 +1,11 @@
 # exp004 - Qwen3.6-35B-A3B vision-language agent
 
+> **2026-05-14 status**: revived as an RTX 6000 / 9h-runtime research
+> track. The original direct policy remains parked, but the new plan is
+> to test guarded Qwen direct-policy variants under the updated Kaggle
+> code requirements. See
+> [`QWEN_RTX6000_REVIVAL_PLAN.md`](QWEN_RTX6000_REVIVAL_PLAN.md).
+
 **Goal**: a vision-language agent driven by `Qwen/Qwen3.6-35B-A3B` (BF16,
 ~70 GB) that ingests the ARC-AGI-3 frame as an image AND a hex-grid text
 dump in the same prompt, and emits one action per turn.
@@ -20,6 +26,24 @@ dump in the same prompt, and emits one action per turn.
   `huggingface_hub.snapshot_download` then `kagglehub.dataset_upload` from
   inside Kaggle's network (gigabit) so we never upload 72 GB from home.
 
+## 2026-05-14 Kaggle update
+
+The ARC-AGI-3 Kaggle page now states:
+
+- submissions must be made through notebooks;
+- CPU and GPU notebook runtime must be `<= 9h`;
+- internet access must be disabled;
+- freely and publicly available external data is allowed, including
+  pretrained models;
+- the submission file is automatically generated;
+- RTX 6000 machines (`g4-standard-48`) are available for ARC-AGI-3
+  notebooks only, with internet disabled.
+
+Implication for exp004: any prize-relevant Qwen submission must be
+notebook-visible, offline, and backed only by public/free model and data
+artifacts. The old private `arc-agi-3-agents-pkg` code-dataset pattern is
+fine for dev-only smoke runs, but not the final compliant submission path.
+
 ## Open trade-offs deferred to later experiments
 
 - `exp005`: same code, swap weights to **Qwen3.5-VL-30B-A3B-Thinking** and
@@ -34,6 +58,9 @@ dump in the same prompt, and emits one action per turn.
 | --- | --- |
 | `bundle_qwen_kernel/` | Kaggle dev kernel that downloads HF weights and pushes them as a private Dataset. Run **once**. |
 | `dev_kernel/` | Kaggle dev kernel that mounts the Dataset and runs `QwenAgent` on a single ARC game. Smoke test, not a competition submission. |
+| `dev_kernel_v2/` | Qwen policy reboot dev kernel using `QwenPolicyAgent` + `qwen_backbone.py` + state graph. |
+| `rtx6000_probe_kernel/` | Phase-0 probe notebook for RTX 6000 / `g4-standard-48` runtime facts. |
+| `QWEN_RTX6000_REVIVAL_PLAN.md` | Phased plan for Qwen Direct Policy++ and follow-up variants. |
 | `notes.md` | Per-day notes during the experiment (created lazily). |
 
 The agent class itself lives at `agents/qwen_agent.py`. The pure-Python
@@ -41,6 +68,27 @@ prompt-build + parser smoke test lives at `scripts/qwen_agent_smoke_local.py`
 and runs without any GPU.
 
 ## End-to-end runbook
+
+### Step -1 - RTX 6000 probe (new Phase 0)
+
+Build the probe notebook locally:
+
+```bash
+uv run python experiments/exp004_qwen_agent/rtx6000_probe_kernel/build_notebook.py
+```
+
+Push it only when you want to spend RTX quota on a dev/probe run:
+
+```bash
+uv run kaggle kernels push \
+    -p experiments/exp004_qwen_agent/rtx6000_probe_kernel \
+    --accelerator NvidiaRtxPro6000
+```
+
+The probe writes `/kaggle/working/rtx6000_probe_summary.json` with GPU,
+package, and optional Qwen config/model-load facts. It defaults to config
+load only; set `PROBE_QWEN_LOAD=1` in the notebook if you intentionally
+want to test full model load.
 
 ### Step 0 - local prompt/parser smoke (no GPU, no model)
 

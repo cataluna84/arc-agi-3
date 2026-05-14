@@ -104,7 +104,7 @@ as a Tier-C verifier per `research/04_strategy_reset_2026-05-01.md` §6.
 
 - **Before** burning the daily Kaggle slot:
   - [ ] Smoke test on at least 3 public games locally; agent does not crash, completes ≥ 1 level on tutorial
-  - [ ] Confirm runtime extrapolation: (avg_actions_per_game × 110 games × per_action_seconds) < 5h
+  - [ ] Confirm runtime extrapolation: (avg_actions_per_game × 110 games × per_action_seconds) < 8h
   - [ ] Diff vs last successful submission (`git diff` or notebook compare)
 - **After** every submission:
   - [ ] Capture LB score, game-by-game scorecard, and any tracebacks → `.factory/memories.md`

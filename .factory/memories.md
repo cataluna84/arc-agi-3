@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-05-14 — D16: Kaggle 9h + RTX 6000 update; exp004 Qwen revival plan
+
+### Kaggle rule update captured
+
+User reported the ARC-AGI-3 Kaggle overview now says:
+- submissions must be made through **notebooks**;
+- CPU and GPU notebook runtime must be **<=9h**;
+- internet access must be disabled;
+- freely and publicly available external data is allowed, including
+  pretrained models;
+- the submission file is automatically generated;
+- RTX 6000 machines (`g4-standard-48`) are available for ARC-AGI-3
+  notebooks only, with no internet.
+
+### exp004 implication
+
+Qwen can be revisited, but only as a compliant, notebook-visible,
+offline, guarded policy. The old private `arc-agi-3-agents-pkg` code
+dataset pattern is fine for dev-only smoke runs, but a prize-relevant
+Qwen submission must inline authored code into the notebook (exp008-style
+builder) and use public/free model + dependency artifacts.
+
+Saved the phased proposal at
+`experiments/exp004_qwen_agent/QWEN_RTX6000_REVIVAL_PLAN.md` and added a
+Phase-0 probe scaffold at
+`experiments/exp004_qwen_agent/rtx6000_probe_kernel/`.
+
+Recommended next action: push the probe with
+`uv run kaggle kernels push -p experiments/exp004_qwen_agent/rtx6000_probe_kernel --accelerator NvidiaRtxPro6000`
+when ready to spend RTX quota on a dev/probe run.
+
 ## 2026-05-13 — D15: D9 Goose v2 = 0.17 (silent-crash hypothesis confirmed) + frame-segmenter port (D10+D11)
 
 ### Headline

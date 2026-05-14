@@ -14,7 +14,7 @@
 | Top Score Award (Final) | $40K / $15K / $10K / $5K / $5K |
 | Grand Prize (100%) | $700K |
 | Daily Submission Limit | **1 / day** (per submitter) |
-| Notebook runtime cap | **CPU/GPU/H100 ≤ 6 hours** |
+| Notebook runtime cap | **CPU/GPU ≤ 9 hours** (2026-05-14 Kaggle update) |
 | Internet during eval | **DISABLED** |
 | Eval set | **110 private games** (50% public LB / 50% private LB) |
 | Action grid | 64×64 cells, integer values 0–15 (16 colors) |
@@ -22,7 +22,12 @@
 | Game states | NOT_FINISHED, WIN, GAME_OVER |
 | Scoring | RHAE (Relative Human Action Efficiency), per-level squared, weighted by level index, then averaged across games. Final ∈ [0, 1]. |
 
-**Critical**: All eligible (prize-claimable) submissions must open-source their solution. The 1/day cap means **every submission must count** — adopt a "ship daily, learn daily" cadence.
+**Critical**: All eligible (prize-claimable) submissions must open-source
+their solution. Kaggle's updated code requirements also require
+notebook-based submissions, internet disabled, automatic submission-file
+generation, and freely/publicly available external data (including
+pretrained models). The 1/day cap means **every submission must count** —
+adopt a "ship daily, learn daily" cadence.
 
 ## Frame and action semantics
 

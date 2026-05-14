@@ -1,0 +1,20 @@
+{
+  "id": "cataluna84/qwen-rtx6000-probe-arc-agi-3",
+  "title": "qwen-rtx6000-probe-arc-agi-3",
+  "code_file": "qwen_rtx6000_probe.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [
+    "cataluna84/qwen3-6-35b-a3b-bf16",
+    "cataluna84/arc-agi-3-transformers-wheels"
+  ],
+  "model_sources": [],
+  "competition_sources": [
+    "arc-prize-2026-arc-agi-3"
+  ],
+  "kernel_sources": []
+}
