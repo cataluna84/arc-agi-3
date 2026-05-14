@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-05-14 — D16 later: RTX 6000 Qwen Phase-0 probe completed
+
+### Probe versions
+
+- `qwen-rtx6000-probe-arc-agi-3` v1 confirmed the RTX pool exists:
+  `NVIDIA RTX PRO 6000 Blackwell Server Edition`, 94.97 GB VRAM,
+  176 GiB system RAM, 87 GiB `/dev/shm`, `torch 2.10.0+cu128`.
+- v2 intentionally tested the offline dependency overlay but was pushed
+  without `--accelerator`, so Kaggle defaulted to P100. This reaffirmed
+  gotcha #16: metadata is not enough; use `kaggle kernels push
+  --accelerator NvidiaRtxPro6000`.
+- v3 with `--accelerator NvidiaRtxPro6000` loaded offline overlays from
+  mounted datasets: Pillow 12.2.0 from comp wheels and transformers 5.7.0
+  from `cataluna84/arc-agi-3-transformers-wheels`. `AutoConfig` now
+  recognizes `model_type=qwen3_5_moe`.
+- v4 full BF16 load succeeded: processor 0.5s, model load ~421-448s,
+  CUDA allocation 70.214 GB, class `Qwen3_5MoeForConditionalGeneration`.
+- v6 prompt probe succeeded: with `enable_thinking=False`, Qwen returned
+  clean action-format strings (`ACTION1`, `{'action':'ACTION1'}`);
+  with default thinking mode it emitted `Thinking Process...`, which would
+  poison direct policy parsing.
+
+### Code changes
+
+- Updated `experiments/exp004_qwen_agent/rtx6000_probe_kernel/build_notebook.py`
+  to install overlays into `/tmp` (not `/kaggle/working`, avoiding massive
+  output artifacts), to syntax-check generated code locally, and to run
+  full model-load + generation probes by default.
+- Updated `agents/qwen_agent.py` to pass
+  `enable_thinking=False` when rendering the chat template, with a
+  `TypeError` fallback for older processors.
+- Added gotcha #22 for Qwen thinking-mode outputs.
+
+### Read
+
+Qwen is now technically loadable and callable on RTX 6000 inside the
+9h notebook envelope. The next useful experiment is not another raw
+direct-policy submit; it is a guarded Phase-1 smoke where Qwen sees
+state-graph/segmenter candidates and only chooses among valid options,
+with trigger-bfs+segmenter fallback on any model failure.
+
 ## 2026-05-14 — D16: Kaggle 9h + RTX 6000 update; exp004 Qwen revival plan
 
 ### Kaggle rule update captured

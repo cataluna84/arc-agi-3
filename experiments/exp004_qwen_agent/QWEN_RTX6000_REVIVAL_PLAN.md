@@ -8,6 +8,16 @@
 > generation, and RTX 6000 (`g4-standard-48`) accelerators restricted to
 > ARC-AGI-3 notebooks.
 
+## Current status (2026-05-14 D16)
+
+Phase 0 is complete on a dev/probe kernel. `qwen-rtx6000-probe-arc-agi-3`
+v6 ran with `--accelerator NvidiaRtxPro6000`, confirmed 94.97 GB VRAM,
+loaded offline Pillow/transformers overlays, loaded Qwen3.6-35B-A3B BF16
+in ~421s with 70.214 GB CUDA allocation, and generated terse action
+outputs when `enable_thinking=False` was passed to
+`processor.apply_chat_template`. Next: Phase 1 guarded smoke with
+state-graph/segmenter candidates and trigger-bfs+segmenter fallback.
+
 ## Strategic thesis
 
 Qwen direct policy is worth re-testing because RTX 6000 changes the

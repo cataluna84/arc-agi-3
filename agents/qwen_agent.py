@@ -225,10 +225,11 @@ def build_prompt(
     hist_str = "\n".join(hist_lines) if hist_lines else "  (no actions yet)"
 
     system = (
-        "You are an ARC-AGI-3 game agent. Reply with ONE action only, NO "
-        "explanation. Format: 'ACTIONn' on one line (e.g. ACTION3). For "
-        "ACTION6 add '(x, y)' both in [0,63]. Pick an action that visibly "
-        "changes the grid; vary actions if the previous one made no change."
+        "You are an ARC-AGI-3 game agent. Do not reason step-by-step. Reply "
+        "with ONE action only, NO explanation. Format: 'ACTIONn' on one line "
+        "(e.g. ACTION3). For ACTION6 add '(x, y)' both in [0,63]. Pick an "
+        "action that visibly changes the grid; vary actions if the previous "
+        "one made no change."
     )
 
     user_content_parts: list[dict] = []
@@ -380,9 +381,19 @@ class QwenAgent:
         # 5. Render chat -> tokens. transformers 5.x supports `apply_chat_template`
         # with `add_generation_prompt=True`; processors that wrap tokenizer
         # accept the messages list directly via the convenience API.
-        text_in = self._processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        try:
+            text_in = self._processor.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+                enable_thinking=False,
+            )
+        except TypeError:
+            text_in = self._processor.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+            )
         proc_kwargs: dict = {"text": text_in, "return_tensors": "pt"}
         if image is not None:
             proc_kwargs["images"] = [image]

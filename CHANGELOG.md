@@ -14,6 +14,24 @@ entries under `[Unreleased]` rather than tagged version cuts.
 
 ## [Unreleased]
 
+### Result - 2026-05-14 D16 (Qwen RTX 6000 Phase-0 probe)
+- `cataluna84/qwen-rtx6000-probe-arc-agi-3` v6 completed with
+  `--accelerator NvidiaRtxPro6000`: 1x NVIDIA RTX PRO 6000 Blackwell
+  Server Edition, 94.97 GB VRAM, 176 GiB RAM, `torch 2.10.0+cu128`.
+- Offline overlays work: Pillow 12.2.0 from the competition wheels and
+  transformers 5.7.0 from `arc-agi-3-transformers-wheels`.
+- Qwen3.6-35B-A3B BF16 loads successfully: processor 0.5s, model load
+  ~421s, CUDA allocation 70.214 GB, generation works. Prompt probe shows
+  `enable_thinking=False` is required for terse action outputs.
+
+### Changed - 2026-05-14 D16 (Qwen no-thinking action path)
+- `agents/qwen_agent.py`: render chat prompts with
+  `enable_thinking=False` (fallback for older processors) and strengthen
+  the system prompt against chain-of-thought output.
+- `experiments/exp004_qwen_agent/rtx6000_probe_kernel/build_notebook.py`:
+  install offline overlays into `/tmp`, perform full load/generation
+  probes by default, and keep generated notebook syntax-checked locally.
+
 ### Result - 2026-05-13 D15 (D9 Goose CNN v2 LB landed = 0.17)
 - **D9 Goose CNN v2 LB = 0.17** (COMPLETE).
 - v1 → v2 went 0.00 → 0.17, confirming the v1 silent-crash hypothesis
