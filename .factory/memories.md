@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-05-14 — D16 later: GraphExplorer Algorithm-1 prototype built, not submission-ready
+
+### Built
+
+- Added `agents/graph_explorer.py`: priority-threshold scheduler with
+  segment-keyed ACTION6 candidates, masked frame hashing, per-state
+  untested candidate sets, and shortest-path routing to frontier states.
+- Added `agents/graph_explorer_agent.py`: safe agent wrapper around the
+  explorer with trigger-score observation and random fallback.
+- Added `tests/test_graph_explorer.py`: 7 tests for candidate seeding,
+  segment-keyed ACTION6 tracking, threshold increments, frontier pathing,
+  masked status-bar hashes, and ACTION6 data bounds.
+
+### Validation
+
+- `uv run pytest`: **61/61 PASS**.
+- `uv run ruff check .` and `uv run ruff format --check .`: PASS.
+- Mock smoke: `ls20-mock` WIN in 132 actions.
+- SDK diagnostic on all 25 mounted games (seed=1, max-actions=400):
+  **0 games / 0 levels**, wall clock ~81s. So the prototype is correctly
+  wired but not yet a viable Kaggle submission.
+
+### Read
+
+This implementation captures the high-level Algorithm-1 shape, but it is
+still missing enough reference parity (action grouping / replay policy /
+possibly exact status-bar masking semantics) that it does not lift public
+SDK games. Do not submit until we diff against the reference repo or add a
+targeted game-level trace debugger.
+
 ## 2026-05-14 — D16 later: exp008 segmenter prior LB landed at 0.12
 
 ### Result

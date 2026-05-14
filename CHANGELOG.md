@@ -25,6 +25,16 @@ entries under `[Unreleased]` rather than tagged version cuts.
 - **Cumulative LB trace** 0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 /
   0.17 / **0.12**.
 
+### Added - 2026-05-14 D16 (GraphExplorer prototype)
+- `agents/graph_explorer.py` and `agents/graph_explorer_agent.py`:
+  prototype priority-threshold scheduler with segment-keyed ACTION6
+  candidates and shortest-path routing to frontier states.
+- `tests/test_graph_explorer.py`: 7 tests covering candidate seeding,
+  segment-keyed ACTION6 tracking, threshold increments, frontier pathing,
+  masked status-bar hashes, and agent click-data bounds.
+- Local diagnostics: mock `ls20-mock` WIN in 132 actions, but SDK run over
+  25 mounted games solved 0 levels, so this prototype is not submission-ready.
+
 ### Result - 2026-05-14 D16 (Qwen RTX 6000 Phase-0 probe)
 - `cataluna84/qwen-rtx6000-probe-arc-agi-3` v6 completed with
   `--accelerator NvidiaRtxPro6000`: 1x NVIDIA RTX PRO 6000 Blackwell

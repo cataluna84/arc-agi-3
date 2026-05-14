@@ -222,6 +222,7 @@ For tomorrow's specific runbook, see
 | `ForgeAgent` | `agents/forge_agent.py` | adapter around verbatim FORGE v19 (BFS + ForgeNet CNN) | LB 0.19 baseline; MASTER v7 remix reached 0.21 |
 | `QwenAgent` | `agents/qwen_agent.py` | vision-language MoE: image + hex grid + history -> ACTION (`Qwen3.6-35B-A3B` BF16); RTX 6000 Phase-0 probe now loads/generates offline | LB 0.00 (D2); LLM-as-direct-policy is structurally worse than random unless constrained (see gotcha #18) |
 | `TriggerBFSAgent` | `agents/trigger_bfs_agent.py` | trigger-aware BFS over state-hash graph; ACTION6 click coords come from `frame_segmenter` 5-tier saliency | LB 0.10 (D4 v0); segmenter prior exp008 = 0.12 |
+| `GraphExplorerAgent` | `agents/graph_explorer_agent.py` | prototype of the paper's priority-threshold action scheduler with segment-keyed ACTION6 candidates and shortest-path frontier routing | local SDK smoke only; not submission-ready (0/25 mounted games) |
 | `GooseAgent` | `agents/goose_agent.py` | Stochastic-Goose-style 4-layer CNN with conv coord head, BCE on `frame_changed` over a 200K hash-dedup buffer | LB 0.00 v1 (D6) → 0.17 v2 (D9) after `enable_gpu=false` + defensive `try/except` |
 | `frame_segmenter` (lib) | `agents/frame_segmenter.py` | stateless port of the dolphin-in-a-coma frame-segmentation algorithm (arXiv:2512.24156, MIT): per-color connected components, 5-tier saliency, status-bar detection | used by `TriggerBFSAgent` for ACTION6 click coords |
 
