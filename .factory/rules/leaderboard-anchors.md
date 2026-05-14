@@ -18,15 +18,17 @@ and `experiments/exp002_forge_variance_probe/README.md`.
 | D1  | 2026-04-29 | exp001 baseline FORGE v19 (vanilla fork)    | 0.19  | +0.00     |
 | D2  | 2026-04-30 | exp002 FORGE variance probe s2              | 0.00  | -0.19     |
 | D3  | 2026-05-01 | exp002 FORGE variance probe s3              | 0.24  | +0.05     |
-| D4  | 2026-05-02 | exp004 Qwen-as-policy v0                    | 0.10  | -0.09     |
-| D5  | 2026-05-03 | exp005 trigger-bfs v0 (no segmenter)        | 0.21  | +0.02     |
+| D4  | 2026-05-02 | exp005 trigger-bfs v0 (no segmenter)        | 0.10  | -0.09     |
+| D5  | 2026-05-03 | exp006 MASTER v7                            | 0.21  | +0.02     |
 | D6  | 2026-05-04 | exp007 Goose CNN v1 (silent crash)          | 0.00  | -0.19     |
 | D9  | 2026-05-07 | exp007 Goose CNN v2 (defensive + CPU)       | 0.17  | -0.02     |
-| D15 | 2026-05-13 | exp008 trigger-bfs + frame-segmenter        | PENDING | -       |
+| D15 | 2026-05-13 | exp008 trigger-bfs + frame-segmenter        | 0.12  | -0.07     |
 
 Best to date: D3 (FORGE variance probe s3) at 0.24. The Goose CNN v2
 result (0.17 vs random 0.18) was the moment we pivoted from training
-priors → structural priors (exp008 frame-segmenter port).
+priors → structural priors. Exp008 shows that a segmenter click prior
+alone is not enough; the next structural step must include the full
+GraphExplorer/action scheduler from the paper.
 
 ## Public LB top (as of 2026-04 snapshot)
 

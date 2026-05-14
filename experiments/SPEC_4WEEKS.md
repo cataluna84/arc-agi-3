@@ -648,13 +648,14 @@ priors, and a defensive `cur_levels >= 0` guard against transient
 gateway `levels_completed=-1`. Pre-submission checks all PASS (ruff,
 40/40 pytest, 22/22 goose smoke, local_runner). Pushed v2 (kernel
 COMPLETE in ~40s on CPU vs failed GPU init); submitted at 2026-05-08
-00:23 UTC. Status: **PENDING**.
+00:23 UTC. Result landed 2026-05-13: **LB = 0.17**.
 
-Decision rule (after v2 LB lands):
+Decision rule result:
 - LB ≥ 0.20 → v1 0.00 was a packaging bug, confirmed; proceed to D10
   frame-segmenter port.
-- 0.10 ≤ LB < 0.20 → agent runs but priors do not lift over random;
-  retrain CNN with longer warm-up.
+- **0.10 ≤ LB < 0.20 → agent runs but priors do not lift over random.**
+  We did not retrain the CNN; we pivoted to structural priors via the
+  D10+D11 frame-segmenter port.
 - LB ≤ 0.05 → still failing silently; cell-by-cell diff vs StochasticGoose
   1st-place repo (`DriesSmit/ARC3-solution`, 12.58% private LB).
 
@@ -1141,7 +1142,7 @@ If any fail at commit time, **fix locally before pushing**.
 |  D9 | YES     | `cataluna84/goose-cnn-comp-arc-agi-3` v2 (CPU + try/except + level>=0 guard) — Done 2026-05-07; v1=0.00, v2=**0.17** |   0.20-0.30 |
 | D10 | NO      | -    (build) `agents/frame_segmenter.py` per arXiv:2512.24156 — Done 2026-05-13 (~440 LOC + 11 tests) | - |
 | D11 | NO      | -    (build) trigger_bfs ACTION6 prior wired to segmenter tiers — Done 2026-05-13 (22/22 smoke) | - |
-| D15 | YES     | `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 (exp008; user requested submit today on banked slot) | 0.30-0.36 |
+| D15 | YES     | `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 (exp008; COMPLETE 2026-05-14, LB=**0.12**; next = GraphExplorer Algorithm 1, not coord-only tweak) | 0.30-0.36 |
 | D12 | YES     | `cataluna84/forge-v20-comp-arc-agi-3`          |        0.42 |
 | D13 | NO      | -                                              |           - |
 | D14 | NO      | -                                              |           - |

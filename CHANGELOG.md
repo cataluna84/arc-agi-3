@@ -14,6 +14,17 @@ entries under `[Unreleased]` rather than tagged version cuts.
 
 ## [Unreleased]
 
+### Result - 2026-05-14 D16 (exp008 segmenter prior LB)
+- `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 landed at
+  **LB = 0.12**. This is only +0.02 over trigger-bfs v0 (0.10) and below
+  Goose v2 (0.17), master_v7 (0.21), and the D3 variance run (0.24).
+- Local SDK diagnostics on all 25 mounted public games solved 0 levels and
+  showed several ACTION6-only collapses, so the next structural step is
+  the full Level Graph Explorer/action scheduler rather than another
+  coordinate-prior-only tweak.
+- **Cumulative LB trace** 0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 /
+  0.17 / **0.12**.
+
 ### Result - 2026-05-14 D16 (Qwen RTX 6000 Phase-0 probe)
 - `cataluna84/qwen-rtx6000-probe-arc-agi-3` v6 completed with
   `--accelerator NvidiaRtxPro6000`: 1x NVIDIA RTX PRO 6000 Blackwell

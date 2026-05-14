@@ -50,7 +50,7 @@ See: `experiments/exp001_baseline_forge/`.
 
 **Local sweep**: 1/25 games clear level 1 (ft09); RandomAgent also gets 1/25 (r11l). Strict ls20 gate not met (neither random nor trigger-bfs passes ls20).
 
-**Submitted**: kernel `cataluna84/trigger-bfs-comp-arc-agi-3` v1 at 14:24 UTC. Status: PENDING. Predicted LB 0.18-0.22.
+**Submitted**: kernel `cataluna84/trigger-bfs-comp-arc-agi-3` v1 at 14:24 UTC. Result: **0.10** (below predicted LB 0.18-0.22).
 
 **Net daily slot tally**:
 - D0 (2026-04-29): 0.19 (FORGE v1)

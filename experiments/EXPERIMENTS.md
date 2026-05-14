@@ -72,11 +72,11 @@ experiments/expNNN_<short-slug>/
   - `trigger_score = abs(Δpixel_count) + 2·new_color_present + 5·levels_completed_changed`.
   - State graph reset on `levels_completed` increment.
 - **Submission (D5, 2026-05-03)**: kernel `cataluna84/trigger-bfs-comp-arc-agi-3` v1.
-- **Result**: **LB = 0.21** (Δ = +0.02). The BFS frontier dedup helps marginally over random (0.18) and just-explore (0.19), but the ACTION6 uniform-pixel sampling wastes most of the action budget on cells that produce no frame change. This motivated the D10+D11 frame-segmenter port (exp008).
+- **Result**: **LB = 0.10** (Δ = -0.09). The BFS frontier dedup alone did not beat random; ACTION6 uniform-pixel sampling wastes most of the action budget on cells that produce no frame change. This motivated the D10+D11 frame-segmenter port (exp008).
 
 ### exp006_master_v7 (Track F — superseded)
 
-- **Status**: shelved. The `experiments/exp006_master_v7/` folder is untracked locally (Droid-Shield blocked) and the per-day SPEC re-purposed the D6 slot for the Goose CNN exp007 build (Track G).
+- **Result (D5, 2026-05-03)**: **LB = 0.21** (Δ = +0.02). MASTER v7 mixed FORGE v19 op_2, v17 beam search, MCTS click masking, grad clipping, and intrinsic reward. It remains the best post-D3 non-variance agent, but the local `experiments/exp006_master_v7/` folder is untracked.
 
 ### exp007_goose_cnn (Track G — re-implementation of StochasticGoose)
 
@@ -97,7 +97,7 @@ experiments/expNNN_<short-slug>/
   - `agents/trigger_bfs_agent.py._sample_click_xy()` walks tiers 0..3 in order, excludes segments whose area > half-frame (dominant background), then samples a random segment from the highest non-empty tier and a random pixel within that segment.
   - Defensive try/except: on any exception, falls through to the legacy non-background sampler, then to uniform.
 - **Submission (D15, 2026-05-13)**: kernel `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1. Kernel COMPLETE in ~25s on CPU. Submitted at 12:29 UTC.
-- **Status**: **PENDING**.
+- **Result (D16, 2026-05-14)**: **LB = 0.12** (Δ = -0.07). Marginal +0.02 over trigger-bfs v0, but below Goose v2 and master_v7. Local SDK diagnostics on 25 mounted games solved 0 levels and showed several ACTION6-only collapses, so the next structural step is the paper's full Level Graph Explorer / priority-threshold action scheduler rather than another coordinate-prior tweak.
 
 ### exp009_mcts_neural_prior (backlog)
 

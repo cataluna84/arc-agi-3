@@ -14,16 +14,17 @@
 
 [comp]: https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3
 
-**Current state** (D15, 2026-05-13): 9 daily slots submitted; LB trace
-**0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 / 0.17 / PENDING**. Best to
+**Current state** (D16, 2026-05-14): 8 scored submissions; LB trace
+**0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 / 0.17 / 0.12**. Best to
 date is D3's variance probe at 0.24. D9 confirmed the silent-crash
 hypothesis on Goose CNN v1 (0.00 → v2 0.17 with `enable_gpu=false`
 plus defensive `try/except`). D10+D11 ported the dolphin-in-a-coma
 frame-segmentation algorithm (arXiv:2512.24156, MIT) into
 `agents/frame_segmenter.py` and wired it as the ACTION6 click-coord
-prior in `agents/trigger_bfs_agent.py`; D15 submitted the wired-up
-agent as `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 with
-target LB 0.30-0.36. Baseline anchor remains **LB 0.19** (vanilla
+prior in `agents/trigger_bfs_agent.py`; D15's wired-up submission
+landed at **LB 0.12**, so the segmenter prior alone is a marginal
++0.02 over trigger-bfs v0 but below Goose v2 and master_v7. Baseline
+anchor remains **LB 0.19** (vanilla
 fork of an upstream public Kaggle notebook implementing FORGE v19;
 see [NOTICE](NOTICE) for upstream credit + paper attributions). All
 "delta vs baseline" deltas are measured against this **0.19** number.
@@ -133,10 +134,10 @@ arc-agi-3/
 |   |-- exp001_baseline_forge/      # LB 0.19 anchor (vanilla FORGE v19 fork)
 |   |-- exp002_forge_variance_probe/ # variance probe for the FORGE baseline (LB 0.24)
 |   |-- exp003_baseline_just_explore/   # orthogonal reference baseline
-|   |-- exp004_qwen_agent/          # Qwen3.6-35B-A3B vision-language agent (LB 0.10)
-|   |-- exp005_trigger_bfs/         # trigger-aware BFS v0 (LB 0.21)
+|   |-- exp004_qwen_agent/          # Qwen3.6-35B-A3B vision-language agent (LB 0.00; RTX probe load works)
+|   |-- exp005_trigger_aware_bfs/   # trigger-aware BFS v0 (LB 0.10)
 |   |-- exp007_goose_cnn/           # Goose CNN v1 (0.00) -> v2 (0.17)
-|   |-- exp008_trigger_bfs_seg/     # trigger_bfs + frame-segmenter (D15 submitted, PENDING)
+|   |-- exp008_trigger_bfs_seg/     # trigger_bfs + frame-segmenter (LB 0.12)
 |   |-- kernel_h100_probe/          # sanity probe of Kaggle's H100 image
 |   `-- kernel_qwen_bridge_probe/   # probes HF -> Kaggle bridge feasibility
 |-- scripts/
@@ -218,9 +219,9 @@ For tomorrow's specific runbook, see
 | --- | --- | --- | --- |
 | `RandomAgent` | `agents/random_agent.py` | uniform over `available_actions`; ACTION6 click is uniform-random | working |
 | `GreedyExploreAgent` | `agents/greedy_explore_agent.py` | epsilon-greedy on per-action empirical frame-change rate | working |
-| `ForgeAgent` | `agents/forge_agent.py` | adapter around verbatim FORGE v19 (BFS + ForgeNet CNN) | LB 0.19 / 0.21 (D1, D4) |
-| `QwenAgent` | `agents/qwen_agent.py` | vision-language MoE: image + hex grid + history -> ACTION (`Qwen3.6-35B-A3B` BF16) | LB 0.10 (D5); LLM-as-direct-policy is structurally worse than random (see gotcha #18) |
-| `TriggerBFSAgent` | `agents/trigger_bfs_agent.py` | trigger-aware BFS over state-hash graph; ACTION6 click coords come from `frame_segmenter` 5-tier saliency | LB 0.21 (D5 v0); segmenter prior wired D11 (exp008 PENDING) |
+| `ForgeAgent` | `agents/forge_agent.py` | adapter around verbatim FORGE v19 (BFS + ForgeNet CNN) | LB 0.19 baseline; MASTER v7 remix reached 0.21 |
+| `QwenAgent` | `agents/qwen_agent.py` | vision-language MoE: image + hex grid + history -> ACTION (`Qwen3.6-35B-A3B` BF16); RTX 6000 Phase-0 probe now loads/generates offline | LB 0.00 (D2); LLM-as-direct-policy is structurally worse than random unless constrained (see gotcha #18) |
+| `TriggerBFSAgent` | `agents/trigger_bfs_agent.py` | trigger-aware BFS over state-hash graph; ACTION6 click coords come from `frame_segmenter` 5-tier saliency | LB 0.10 (D4 v0); segmenter prior exp008 = 0.12 |
 | `GooseAgent` | `agents/goose_agent.py` | Stochastic-Goose-style 4-layer CNN with conv coord head, BCE on `frame_changed` over a 200K hash-dedup buffer | LB 0.00 v1 (D6) → 0.17 v2 (D9) after `enable_gpu=false` + defensive `try/except` |
 | `frame_segmenter` (lib) | `agents/frame_segmenter.py` | stateless port of the dolphin-in-a-coma frame-segmentation algorithm (arXiv:2512.24156, MIT): per-color connected components, 5-tier saliency, status-bar detection | used by `TriggerBFSAgent` for ACTION6 click coords |
 

@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-05-14 — D16 later: exp008 segmenter prior LB landed at 0.12
+
+### Result
+
+- `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 COMPLETE:
+  **LB = 0.12**.
+- Updated scoreboard: **0.19 / 0.00 / 0.24 / 0.10 / 0.21 / 0.00 /
+  0.17 / 0.12**. Best remains D3's FORGE variance run at 0.24.
+- Band per exp008 decision rule: **0.10 <= LB < 0.21**. This is only
+  +0.02 over trigger-bfs v0 and below Goose v2/master_v7, so the
+  segmenter coordinate prior alone is not enough.
+
+### Diagnostics
+
+After installing the ARC SDK wheels locally, ran trigger-bfs+segmenter
+through `experiments/local_runner.py --use-sdk` on all 25 mounted public
+games (seed=1, max-actions=400). Result: **0/25 games, 0 levels**. Several
+games collapsed to ACTION6-only (`ft09`, `lp85`, `r11l`, `s5i5`, `tn36`,
+`vc33`), while arrow-only games such as `ls20` never reached level 1.
+
+### Read
+
+The paper's advantage is not just frame segmentation; it is the Level
+Graph Explorer's priority-threshold action scheduler and shortest-path
+backtracking to states with untested actions. Next non-Qwen structural
+experiment should port GraphExplorer Algorithm 1 before touching the
+click-coordinate prior again.
+
 ## 2026-05-14 — D16 later: RTX 6000 Qwen Phase-0 probe completed
 
 ### Probe versions

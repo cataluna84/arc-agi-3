@@ -84,7 +84,7 @@ should be a separate exp (call it D12+).
 
 | When               | Slug                                                | Status   | LB |
 |--------------------|-----------------------------------------------------|----------|-----|
-| 2026-05-13 12:29 UTC | `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 | PENDING | TBD |
+| 2026-05-13 12:29 UTC | `cataluna84/trigger-bfs-segmenter-comp-arc-agi-3` v1 | COMPLETE | 0.12 |
 
 (Kaggle auto-slugged the title "Trigger BFS + Segmenter comp
 ARC-AGI-3" to `trigger-bfs-segmenter-comp-arc-agi-3` instead of our
@@ -103,3 +103,17 @@ id and the local docs now use the actual slug.)
   reaches click-controlled games (ls20 is arrow-controlled).
 - LB < 0.10: regression; the segmenter wire-up is harming the agent
   somehow. Roll back to the legacy non-bg sampler and re-investigate.
+
+## Result (2026-05-14 D16)
+
+LB landed at **0.12**: a marginal +0.02 over trigger-bfs v0 (0.10), but
+below Goose v2 (0.17), master_v7 (0.21), and the D3 variance high-water
+mark (0.24). This falls in the **0.10 <= LB < 0.21** band: the segmenter
+coordinate prior alone is not enough.
+
+Local SDK diagnostics across the 25 mounted public games (seed=1,
+max-actions=400) completed **0/25 games** and **0 levels**, with several
+games collapsing to ACTION6-only (`ft09`, `lp85`, `r11l`, `s5i5`,
+`tn36`, `vc33`). Read: the missing piece is the paper's Level Graph
+Explorer / priority-threshold action scheduler, not just better click
+coordinates.
