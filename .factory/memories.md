@@ -5,6 +5,102 @@
 
 ---
 
+## 2026-05-15 — D17: Phase-1 Qwen built + 4-game dev smoke + fallback submit
+
+### Headline
+
+- **Built** `agents/qwen_agent.py` Phase-1 ("Direct Policy++") — state-graph +
+  outcome memory + ACTION6 segmenter candidates + strict JSON output target +
+  guarded action snapping + TriggerBFS fallback wrapper. 70/70 pytest pass,
+  31-check Phase-1 smoke pass, 22-check legacy smoke pass.
+- Built `experiments/exp004_qwen_agent/comp_kernel_v2/` (Phase-1 comp kernel
+  with inlined state_graph + frame_segmenter + trigger_bfs + Qwen + MyAgent
+  shim, ~46 KB notebook) and `dev_kernel_v3/` (4-game smoke harness).
+- **Dev kernel v4 ran COMPLETE on RTX 6000** in ~20 min total (805 s model
+  load + ~7 min for 4-game smoke). Smoke fails 1/5 gates (`no_change_rate
+  = 0.575 > 0.50`). Per plan, fell back to **trigger-bfs-segmenter v1
+  resubmit** (D15's same kernel). Submission ref **52682163**, PENDING at
+  2026-05-15 14:00 UTC. Predicted LB ~0.12 (floor protection).
+
+### Dev smoke result (`qwen_phase1_smoke.json`)
+
+| Game | Steps | Levels | p50/p95 latency | Valid% | No-change% | Action hist |
+|---|---|---|---|---|---|---|
+| ls20 | 100 | 0 | 0.96 / 0.98 s | 100% | 7% | A1×53, A2×18, A3×17, A4×12 |
+| ft09 | 100 | 0 | 0.96 / 0.97 s | 100% | **100%** | A6×100 |
+| **vc33** | **53** | **1** | 0.94 / 1.00 s | 100% | 0% | A6×53 |
+| lp85 | 100 | 0 | 1.00 / 1.00 s | 100% | **96%** | A6×100 |
+| AGG | 353 | 1 max | 1.00 s p95 | 100% | 57.5% | — |
+
+Gates: `levels_ge_1` ✓, `p95_le_7` ✓, `valid_rate_ge_0_95` ✓ (100%),
+`fallback_le_0_20` ✓ (0%), `no_change_le_0_50` ✗ (0.575). **4/5 pass.**
+
+### Read (positive + bug)
+
+- **Positive**: Qwen cleared vc33 L1 in 53 actions, then GAME_OVER. TriggerBFS
+  in our local sweep got 0 levels on vc33. The Phase-1 segmenter-grounded
+  ACTION6 path produced real new value on at least one game family.
+- **Bug**: ft09 and lp85 collapsed to ACTION6-spam (100% / 96% no-change). The
+  "skip known no-change" guard didn't fire because `_hash_frame` hashes ALL
+  frame layers. If any layer's pixels shift between frames (e.g., status-bar
+  step counter), the state hash drifts even when game state is unchanged. Each
+  new hash → new StateGraph node → all 7 actions back in `untried` → ACTION6
+  always available → model picks it again. Smoke's `no_change_rate` uses only
+  `frame.frame[0]` (which IS stable for ft09), exposing the divergence.
+- **TriggerBFS doesn't hit this bug as hard** because it picks uniformly random
+  over untried actions; ACTION6 collapse is statistically suppressed (1/7
+  chance per call). Qwen sticks to ACTION6 deterministically.
+
+### D17 submission decision
+
+Per the plan's gate rule, do not push Phase-1 comp on a gate failure. Chose
+trigger-bfs-segmenter v1 over FORGE v2 because:
+
+- D16 FORGE submission ERRORED (Kaggle eval side) — recent FORGE reliability ~50%.
+- trigger-bfs-segmenter v1 ran COMPLETE on D15 and scored 0.12 cleanly — reliability ~95%.
+- Expected LB: trigger-bfs ≈ 0.114, FORGE v2 ≈ 0.105 (after error rate). Marginal but trigger-bfs wins.
+
+The Phase-1 Qwen code stays in repo; comp_kernel_v2 builder is ready. After
+the hash-drift fix (D18 work), Phase-1 should be submission-viable.
+
+### Files touched (D17)
+
+- `agents/qwen_agent.py` — Phase-1 patches (state-graph + outcome memory +
+  candidates + guards + fallback wrapper); backward-compat 22-check smoke
+  still passes.
+- `scripts/qwen_phase1_smoke_local.py` — 31-check CPU-only smoke (NEW).
+- `tests/test_qwen_phase1.py` — 12 pytest cases (NEW).
+- `experiments/exp004_qwen_agent/comp_kernel_v2/{build_notebook.py, kernel-metadata.json, qwen_phase1_comp.ipynb}` (NEW).
+- `experiments/exp004_qwen_agent/dev_kernel_v3/{build_notebook.py, kernel-metadata.json, qwen_phase1_dev.ipynb}` (NEW).
+- `pyproject.toml` — per-file E501/RUF005 ignores for the new builders.
+
+### Next (D18)
+
+1. **Fix hash-drift bug**: replace `_hash_frame` (or add `_masked_hash`) to mask
+   status-bar pixels via `frame_segmenter.hash_masked_frame()`. This should
+   make repeated ACTION6 from the same logical state collide to the same node,
+   allowing the skip-no-change guard to fire.
+2. **Re-smoke** on the same 4-game set; require `no_change_rate ≤ 0.50`.
+3. **If smoke clean**: push `comp_kernel_v2` for D18.
+4. **Add gotcha #23**: "Status-bar pixel drift breaks state-graph dedup; use
+   `hash_masked_frame` for action-collapse-prone agents." (To be added once
+   the fix is confirmed.)
+
+### Updated LB scoreboard (post-D17 submit)
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D1  | 04-29 | FORGE v19 fork | 0.19 | 0.00 |
+| D2  | 04-30 | Qwen 35B (Track B) | 0.00 | -0.19 |
+| D3  | 05-01 | FORGE variance probe | **0.24** | +0.05 |
+| D4  | 05-02 | trigger-bfs v0 | 0.10 | -0.09 |
+| D5  | 05-03 | MASTER v7 | 0.21 | +0.02 |
+| D6  | 05-04 | Goose CNN v1 | 0.00 | -0.19 |
+| D9  | 05-07 | Goose CNN v2 | 0.17 | -0.02 |
+| D15 | 05-13 | trigger-bfs+segmenter v1 | 0.12 | -0.07 |
+| D16 | 05-14 | FORGE v2 resubmit (errored) | ERROR | — |
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | PENDING | — |
+
 ## 2026-05-14 — D16 afternoon: brainstorm complete; today's submission slot used
 
 ### Brainstorm

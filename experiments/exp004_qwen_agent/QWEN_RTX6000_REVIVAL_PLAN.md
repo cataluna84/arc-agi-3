@@ -82,6 +82,15 @@ loading path and the notebook remains compliant.
 
 ## Phase 1 — Qwen Direct Policy++
 
+**Status (D17, 2026-05-15)**: BUILT + SMOKED, gate FAILED (4/5 gates pass).
+4-game dev kernel ran on RTX 6000 (`qwen-phase1-dev-arc-agi-3` v4, COMPLETE
+in ~20 min). Qwen cleared vc33 L1 in 53 actions but collapsed to ACTION6-
+spam on ft09 (100% no-change) and lp85 (96% no-change) due to status-bar
+hash drift defeating the skip-known-no-change guard. D17 slot used on
+trigger-bfs-segmenter v1 fallback (ref 52682163). Phase 1 returns once the
+masked-frame-hash fix (see "Next" in `.factory/memories.md` D17 section) is
+in place and re-smoke clears `no_change_rate ≤ 0.50`.
+
 Qwen chooses every action, but receives structured state context and is
 constrained by guards.
 

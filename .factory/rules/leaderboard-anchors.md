@@ -23,7 +23,8 @@ and `experiments/exp002_forge_variance_probe/README.md`.
 | D6  | 2026-05-04 | exp007 Goose CNN v1 (silent crash)          | 0.00  | -0.19     |
 | D9  | 2026-05-07 | exp007 Goose CNN v2 (defensive + CPU)       | 0.17  | -0.02     |
 | D15 | 2026-05-13 | exp008 trigger-bfs + frame-segmenter        | 0.12  | -0.07     |
-| D16 | 2026-05-14 | exp010 FORGE variance safety resubmit       | PENDING | -       |
+| D16 | 2026-05-14 | exp010 FORGE variance safety resubmit       | ERROR   | -       |
+| D17 | 2026-05-15 | exp008 trigger-bfs+segmenter v1 (resubmit)  | PENDING | -       |
 
 Best to date: D3 (FORGE variance probe s3) at 0.24. The Goose CNN v2
 result (0.17 vs random 0.18) was the moment we pivoted from training
