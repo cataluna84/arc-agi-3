@@ -99,7 +99,7 @@ the hash-drift fix (D18 work), Phase-1 should be submission-viable.
 | D9  | 05-07 | Goose CNN v2 | 0.17 | -0.02 |
 | D15 | 05-13 | trigger-bfs+segmenter v1 | 0.12 | -0.07 |
 | D16 | 05-14 | FORGE v2 resubmit (errored) | ERROR | — |
-| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | PENDING | — |
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | **0.12** | -0.07 (identical to D15 — same kernel, same score) |
 
 ## 2026-05-14 — D16 afternoon: brainstorm complete; today's submission slot used
 
