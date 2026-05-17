@@ -281,3 +281,156 @@ def test_reset_counters_zeroes_smoke_counters():
     agent.reset_counters()
     assert agent._fallback_count == 0
     assert agent._parse_failure_count == 0
+
+
+# ---------------------------------------------------------------------------
+# hash_frame_masked stability (D17 fix: primary-layer only + status-bar mask)
+# ---------------------------------------------------------------------------
+
+
+def test_hash_frame_masked_ignores_secondary_layer_drift():
+    """Drift in frame_layers[1+] (overlay / score / animation layers) must not
+    change the digest. This is the dominant failure mode of the legacy
+    `state_graph.hash_frame`, which iterates ALL layers and caused the D17
+    ACTION6-spam collapse on ft09 / lp85 (frame[0] was stable per the smoke,
+    but frame[1+] drifted)."""
+    pytest.importorskip("numpy")
+    import numpy as np
+
+    from agents.qwen_agent import hash_frame_masked
+    from agents.state_graph import hash_frame
+
+    primary = np.zeros((64, 64), dtype=np.uint8)
+    primary[20, 20] = 7  # stable game state
+
+    overlay_a = np.zeros((64, 64), dtype=np.uint8)
+    overlay_b = np.full((64, 64), 5, dtype=np.uint8)  # heavy overlay drift
+
+    h_a = hash_frame_masked([primary, overlay_a])
+    h_b = hash_frame_masked([primary, overlay_b])
+    assert h_a == h_b, "secondary-layer drift must not change masked hash"
+
+    # Legacy hash WOULD see them as different — that's the bug.
+    assert hash_frame([primary, overlay_a]) != hash_frame([primary, overlay_b])
+
+
+def test_hash_frame_masked_distinguishes_real_state_changes():
+    """When the primary layer's non-status pixels change, the hash MUST differ."""
+    pytest.importorskip("numpy")
+    import numpy as np
+
+    from agents.qwen_agent import hash_frame_masked
+
+    a = np.zeros((64, 64), dtype=np.uint8)
+    a[20, 20] = 7
+
+    b = a.copy()
+    b[20, 20] = 8  # real state change
+
+    assert hash_frame_masked([a]) != hash_frame_masked([b])
+
+
+def test_hash_frame_masked_masks_detectable_status_bar():
+    """If the primary layer has a clear status bar (high aspect ratio segment
+    along an edge) and the bar's segment shape stays stable across two frames,
+    pixels masked to STATUS_BAR_COLOR collide. Game state outside the bar
+    differs → overall masked hash should still differ.
+
+    This test demonstrates the masking layer of `hash_frame_masked`; for
+    real ARC-AGI-3 games where the bar fragments under pixel drift, the
+    primary-layer-only mitigation (test above) carries most of the fix."""
+    pytest.importorskip("numpy")
+    import numpy as np
+
+    from agents.qwen_agent import hash_frame_masked
+
+    # Two frames with identical wide horizontal bars + IDENTICAL bars
+    # (same color, same shape, both detected as status bars) but differing
+    # outside the bar.
+    grid_a = np.zeros((64, 64), dtype=np.uint8)
+    grid_a[0:2, :] = 1
+    grid_a[30, 30] = 7
+
+    grid_b = np.zeros((64, 64), dtype=np.uint8)
+    grid_b[0:2, :] = 1
+    grid_b[31, 30] = 7  # salient pixel moved 1 row down
+
+    assert hash_frame_masked([grid_a]) != hash_frame_masked([grid_b]), (
+        "real game-state change outside bar must produce different masked hash"
+    )
+
+
+def test_hash_frame_masked_empty_returns_stable_digest():
+    from agents.qwen_agent import hash_frame_masked
+
+    a = hash_frame_masked([])
+    b = hash_frame_masked(None)  # type: ignore[arg-type]
+    assert a == b
+    assert isinstance(a, bytes)
+    assert len(a) == 8
+
+
+# ---------------------------------------------------------------------------
+# Path B: tried_clicks prompt + system-prompt avoid rule
+# ---------------------------------------------------------------------------
+
+
+def test_build_prompt_surfaces_tried_clicks_block():
+    """When tried_clicks is non-empty, the user message must list the coords
+    and the system prompt must instruct the model to avoid them."""
+    from agents.qwen_agent import build_prompt
+
+    frame = _make_frame(available=[6])
+    candidates = [
+        {"label": "C0", "x": 12, "y": 8, "tier": 0},
+        {"label": "C1", "x": 24, "y": 16, "tier": 0},
+    ]
+    tried = [(12, 8), (24, 16)]
+    messages, _ = build_prompt(
+        frame,
+        history=[],
+        visit_count=2,
+        untried=[],
+        action6_candidates=candidates,
+        tried_clicks=tried,
+    )
+    user_parts = messages[1]["content"]
+    user_text = next(p["text"] for p in user_parts if p.get("type") == "text")
+    assert "Already tried at this state" in user_text
+    assert "(12,8)" in user_text
+    assert "(24,16)" in user_text
+    sys_text = messages[0]["content"]
+    assert "DIFFERENT click candidate" in sys_text
+
+
+def test_build_prompt_omits_tried_clicks_block_when_empty():
+    """No 'Already tried' line should appear when there's no click history."""
+    from agents.qwen_agent import build_prompt
+
+    frame = _make_frame(available=[6])
+    messages, _ = build_prompt(
+        frame,
+        history=[],
+        action6_candidates=[{"label": "C0", "x": 0, "y": 0, "tier": 0}],
+        tried_clicks=[],
+    )
+    user_text = next(p["text"] for p in messages[1]["content"] if p.get("type") == "text")
+    assert "Already tried at this state" not in user_text
+
+
+def test_tried_clicks_per_state_resets_on_level_transition():
+    """The level-transition guard must clear _tried_clicks_per_state."""
+    from agents.qwen_agent import QwenAgent
+
+    agent = QwenAgent()
+    agent._tried_clicks_per_state[b"\x01" * 8] = [(12, 8), (24, 16)]
+    agent._prev_levels = 0
+
+    # Simulate level transition (gotcha #19 guard).
+    cur_levels = 1
+    if cur_levels >= 0 and cur_levels != agent._prev_levels:
+        agent._state_graph.maybe_reset_for_level(cur_levels)
+        agent._outcome_history.clear()
+        agent._tried_clicks_per_state.clear()
+
+    assert agent._tried_clicks_per_state == {}

@@ -82,14 +82,26 @@ loading path and the notebook remains compliant.
 
 ## Phase 1 — Qwen Direct Policy++
 
-**Status (D17, 2026-05-15)**: BUILT + SMOKED, gate FAILED (4/5 gates pass).
-4-game dev kernel ran on RTX 6000 (`qwen-phase1-dev-arc-agi-3` v4, COMPLETE
-in ~20 min). Qwen cleared vc33 L1 in 53 actions but collapsed to ACTION6-
-spam on ft09 (100% no-change) and lp85 (96% no-change) due to status-bar
-hash drift defeating the skip-known-no-change guard. D17 slot used on
-trigger-bfs-segmenter v1 fallback (ref 52682163). Phase 1 returns once the
-masked-frame-hash fix (see "Next" in `.factory/memories.md` D17 section) is
-in place and re-smoke clears `no_change_rate ≤ 0.50`.
+**Status (D19, 2026-05-17)**: BUILT + SMOKED + SUBMITTED. After two fixes
+applied across D17-D19:
+
+1. **Masked hash** (`agents.qwen_agent.hash_frame_masked`): primary-layer
+   only + status-bar mask. Resolves multi-layer drift.
+2. **Path B — tried-clicks in prompt**: per-state click history surfaced
+   in the LLM prompt so it can avoid known-no-change coords on
+   ACTION6-only games where action-id rotation is impossible.
+
+Dev kernel v6 4-game smoke (ls20, ft09, vc33, lp85 × 100 actions each):
+**5/5 gates pass** (aggregate `no_change_rate` 0.575 → 0.322). vc33 and
+lp85 each clear L1 (lp85 was 0 → 1 with Path B). ft09 still stuck because
+the segmenter doesn't surface its interactive region — Phase-1.5 work.
+Comp kernel `cataluna84/qwen-phase1-comp-arc-agi-3` v1 push: COMPLETE in
+save-mode. Comp submission **ref 52740633 PENDING** at 2026-05-17 11:41 UTC;
+LB result lands ~24h later.
+
+**Earlier D17 status (history)**: First smoke (no fix) showed 4/5 gates pass,
+no_change_rate=0.575 (FAIL). D17 slot used on trigger-bfs-segmenter v1
+fallback (ref 52682163, scored 0.12).
 
 Qwen chooses every action, but receives structured state context and is
 constrained by guards.

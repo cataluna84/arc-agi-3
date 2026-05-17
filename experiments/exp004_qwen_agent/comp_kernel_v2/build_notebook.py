@@ -322,6 +322,39 @@ def mask_to_click_coords(label_map, segment_id, rng=None):
     idx = rng.randrange(len(points))
     y, x = int(points[idx, 0]), int(points[idx, 1])
     return x, y
+
+
+# D17 ACTION6-spam fix: hash PRIMARY visual layer with status-bar pixels
+# masked (drops drift in overlay/score layers + best-effort bar masking).
+# Used by QwenAgent only; TriggerBFS fallback keeps unmasked _hash_frame.
+def _hash_frame_masked(frame_layers) -> bytes:
+    h = hashlib.blake2b(digest_size=8)
+    if not frame_layers:
+        return h.digest()
+    layer = frame_layers[0]
+    try:
+        grid = layer if isinstance(layer, np.ndarray) else np.asarray(layer, dtype=np.uint8)
+        if grid.ndim != 2:
+            h.update(grid.tobytes())
+            return h.digest()
+        label_map, segments = segment_frame(grid)
+        sb_mask, _ = identify_status_bars(label_map, segments)
+        if sb_mask is not None and sb_mask.any():
+            masked = grid.copy()
+            masked[sb_mask] = STATUS_BAR_COLOR
+            h.update(masked.tobytes())
+        else:
+            h.update(grid.tobytes())
+        return h.digest()
+    except Exception:
+        h = hashlib.blake2b(digest_size=8)
+        tobytes = getattr(layer, "tobytes", None)
+        if callable(tobytes):
+            h.update(tobytes())
+        else:
+            for row in layer:
+                h.update(bytes(int(v) % 256 for v in row))
+        return h.digest()
 """
 
 INLINED_TRIGGER_BFS = r'''
@@ -556,7 +589,7 @@ def _parse_json_first(text):
     return result if isinstance(result, dict) else None
 
 
-def build_prompt(frame, history, *, visit_count=0, untried=None, action6_candidates=None):
+def build_prompt(frame, history, *, visit_count=0, untried=None, action6_candidates=None, tried_clicks=None):
     avail = [int(a) for a in (getattr(frame, "available_actions", None) or [])]
     avail_str = ", ".join(f"ACTION{a}" for a in avail) if avail else "ACTION1..ACTION7"
     state_str = getattr(getattr(frame, "state", None), "name", "?")
@@ -586,8 +619,10 @@ def build_prompt(frame, history, *, visit_count=0, untried=None, action6_candida
         'ONE action only as STRICT JSON on one line: '
         '{"action":"ACTIONn","x":int|null,"y":int|null,"why":"<=12 chars"}. '
         "Pick ACTIONn from Available. For ACTION6 you MUST set x,y in [0,63] -- "
-        "PREFER one of the listed Click candidates. Avoid actions in the recent "
-        "history that caused no-change at this state."
+        "PREFER one of the listed Click candidates. If 'Already tried at this "
+        "state' is non-empty, PICK A DIFFERENT click candidate (different (x,y)) "
+        "because the listed coords have already produced no change here. Avoid "
+        "actions in the recent history that caused no-change at this state."
     )
     user_content = []
     if image is not None:
@@ -608,6 +643,11 @@ def build_prompt(frame, history, *, visit_count=0, untried=None, action6_candida
                 f"tier{int(c.get('tier', 4))}"
             )
         parts.append("\n".join(cand_lines))
+    if tried_clicks:
+        tried_str = ", ".join(f"({int(x)},{int(y)})" for x, y in tried_clicks)
+        parts.append(
+            f"Already tried at this state (no-change): {tried_str}. Pick a DIFFERENT click candidate."
+        )
     parts.append(f"History (oldest->newest):\n{hist_str}")
     parts.append("Output ONE JSON object only.")
     user_content.append({"type": "text", "text": "\n".join(parts)})
@@ -640,6 +680,9 @@ class QwenAgent:
         self._prev_hash = None
         self._prev_action_id = None
         self._prev_levels = 0
+        # D17 Path B: per-state click-coord history for ACTION6-only games.
+        self._tried_clicks_per_state = {}
+        self._prev_click = None
         self._fallback = TriggerBFSAgent(seed=int(seed) if seed is not None else 0)
         self._fallback_count = 0
         self._parse_failure_count = 0
@@ -805,11 +848,13 @@ class QwenAgent:
         if state in (GameState.NOT_PLAYED, GameState.GAME_OVER):
             return GameAction.RESET
         cur_layers = list(getattr(frame, "frame", []) or [])
-        cur_hash = _hash_frame(cur_layers) if cur_layers else b"\x00" * 8
+        # Masked hash collapses status-bar drift to a stable digest (D17 fix).
+        cur_hash = _hash_frame_masked(cur_layers) if cur_layers else b"\x00" * 8
         cur_levels = int(getattr(frame, "levels_completed", 0))
         if cur_levels >= 0 and cur_levels != self._prev_levels:
             self._state_graph.maybe_reset_for_level(cur_levels)
             self._outcome_history.clear()
+            self._tried_clicks_per_state.clear()  # D17 Path B
         avail = list(getattr(frame, "available_actions", []) or [1, 2, 3, 4, 5, 6, 7])
         node = self._state_graph.add_or_get(cur_hash, available_actions=avail, levels=cur_levels)
         if self._prev_hash is not None and self._prev_action_id is not None:
@@ -820,12 +865,24 @@ class QwenAgent:
                 self._prev_action_name or f"ACTION{self._prev_action_id}",
                 float(change_score), int(level_delta),
             ))
+            # D17 Path B: record no-change ACTION6 clicks for prompt diversification.
+            if (
+                self._prev_action_id == 6
+                and change_score == 0.0
+                and self._prev_hash == cur_hash
+                and self._prev_click is not None
+            ):
+                bucket = self._tried_clicks_per_state.setdefault(cur_hash, [])
+                if self._prev_click not in bucket:
+                    bucket.append(self._prev_click)
         avail_set = {int(a) for a in avail}
         candidates = self._segment_action6_candidates(cur_layers) if 6 in avail_set else []
         untried = sorted(a for a in node.untried_actions if a in avail_set and a != 0)
+        tried_clicks_here = list(self._tried_clicks_per_state.get(cur_hash, []))
         messages, image = build_prompt(
             frame, list(self._outcome_history),
             visit_count=node.visit_count, untried=untried, action6_candidates=candidates,
+            tried_clicks=tried_clicks_here,
         )
         self._ensure_model_loaded()
         torch = self._torch
@@ -864,6 +921,23 @@ class QwenAgent:
         self._prev_levels = cur_levels
         self._prev_hash = cur_hash
         data = getattr(action, "_data", {}) or {}
+        # D17 Path B: capture click coords (arcengine stores on action_data).
+        if int(action.value) == 6:
+            ad = getattr(action, "action_data", None)
+            if ad is not None and hasattr(ad, "x") and hasattr(ad, "y"):
+                try:
+                    self._prev_click = (int(ad.x), int(ad.y))
+                except (AttributeError, TypeError, ValueError):
+                    self._prev_click = None
+            elif isinstance(data, dict) and "x" in data and "y" in data:
+                try:
+                    self._prev_click = (int(data["x"]), int(data["y"]))
+                except (ValueError, TypeError):
+                    self._prev_click = None
+            else:
+                self._prev_click = None
+        else:
+            self._prev_click = None
         self._state_graph.record_action(cur_hash, int(action.value), data)
         return action
 

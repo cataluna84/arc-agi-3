@@ -5,6 +5,124 @@
 
 ---
 
+## 2026-05-17 — D19: Path B fix (masked hash + tried-clicks-in-prompt) → 5/5 gates pass → Qwen Phase-1 submitted
+
+### Day-counter correction
+
+Earlier session entries assumed "D17 = 2026-05-15" for the entire ~2-day session.
+The actual UTC dates were:
+
+- **D17 = 2026-05-15**: trigger-bfs-segmenter v1 resubmit (ref 52682163, scored 0.12)
+- **D18 = 2026-05-16**: NO SUBMISSION (slot expired unused)
+- **D19 = 2026-05-17 (today)**: Qwen Phase-1 + Path B submission (ref 52740633, PENDING)
+
+### Two fixes applied this session
+
+**Fix 1 — masked hash** (`agents/qwen_agent.py:hash_frame_masked`): replaced
+`state_graph.hash_frame` (which iterates ALL layers + raw bytes) with a
+primary-layer-only digest that masks detected status-bar segments. Resolves
+the multi-layer drift case where `frame.frame[1+]` overlays produce a fresh
+state-graph node every step.
+
+**Fix 2 — Path B tried-clicks in prompt** (the actual unblocker for lp85):
+new `_tried_clicks_per_state: dict[bytes, list[(x,y)]]` on QwenAgent. When
+the previous ACTION6 produced no change at the same state hash, we record
+the (x,y). `build_prompt` surfaces "Already tried at this state: (12,8),
+(24,16). Pick a DIFFERENT click candidate." to the LLM. System prompt
+updated with explicit avoid-rule. Resets on level transition.
+
+The D17 evening smoke showed the masked-hash fix alone wasn't enough: ft09
+and lp85 have `available_actions=[6]` only, so the existing skip-no-change
+guard couldn't rotate to any other action id — what needed to vary was the
+click coordinate. Path B addresses that by passing per-coord history to the
+model.
+
+### 4-game smoke comparison
+
+| Game | D17 v5 (no fix) | D17 evening (masked hash) | D19 v6 (Path B) |
+|---|---|---|---|
+| ls20 levels | 0 | 0 | 0 |
+| ls20 no-change | 7% | 7% | **1%** |
+| ft09 levels | 0 | 0 | 0 (segmenter doesn't surface target) |
+| ft09 no-change | 100% | 100% | 100% |
+| vc33 levels | 1 | 1 | 1 |
+| vc33 no-change | 0% | 0% | 0% |
+| **lp85 levels** | 0 | 0 | **1** ← Path B unlocked this |
+| lp85 no-change | 96% | 96% | **3%** |
+| aggregate no-change | 57.5% | 57.5% | **32.2%** |
+| 5-gate pass | NO (4/5) | NO (4/5) | **YES (5/5)** |
+
+Parse failures rose under the Path B prompt (vc33: 0 → 41/53), but
+`valid_action_rate` held at 100% across all games — the `_parse_json_first
+→ None → parse_action(reply)` regex fallback in `_apply_guards` recovers
+cleanly. The LLM's free-text replies still contain `ACTION6` and the regex
+extracts it. Worth tracking for a future Phase-2 prompt simplification, but
+not blocking.
+
+### Comp kernel pre-flight
+
+Pushed `cataluna84/qwen-phase1-comp-arc-agi-3` v1 to Kaggle in save-mode
+(no slot consumed). COMPLETE in ~90s. Pillow + transformers overlays
+installed, `my_agent.py` (36 KB) written to `/kaggle/working/`, dummy
+parquet emitted. No errors. Kernel slug matches metadata id (gotcha #20).
+
+### D19 submission
+
+- Ref **52740633** at 2026-05-17 11:41:46 UTC, PENDING.
+- Kernel: `cataluna84/qwen-phase1-comp-arc-agi-3` v1.
+- Model load on RTX 6000: 536-876s amortized.
+- Per-action latency: 0.96-1.02 s p95 across all dev games (well under 7s
+  cap, well under 8h total budget).
+- LB result lands ~24h later (≈ 2026-05-18 11:41 UTC).
+
+### Expected LB band
+
+- vc33 + lp85 each clear L1 → small positive contribution.
+- ls20 + ft09 likely 0 levels (ls20 needs >100 actions per Rudakov 2026;
+  ft09's interactive region isn't a segmenter-surfaced tier-0/1 candidate).
+- Other 106 private games unknown.
+- Conservative: 0.04-0.18. Optimistic: 0.20+ if Path B generalizes to other
+  ACTION6-heavy games with detectable interactive segments.
+- 0.24 best (D3 FORGE) is a stretch; 0.12 trigger-bfs floor is the at-risk
+  comparator.
+
+### Repo state
+
+- All 77 pytest pass (19 in `tests/test_qwen_phase1.py`).
+- Ruff lint + format clean.
+- Path B work uncommitted in working tree per user direction (we waited
+  on commit decision until after the submission).
+
+### Next (post-D19 LB result)
+
+1. **If LB ≥ 0.13**: Path B has demonstrated value over the structural
+   prior. Promote to default Phase-1 build; explore Phase 2
+   (candidate-action ranker) for D20.
+2. **If 0.04 ≤ LB < 0.13**: Path B is at-or-below floor. Fix ft09's
+   ACTION6-spam in Phase-1.5 — likely needs richer candidate generation
+   (e.g., scan ALL segments, not just tier-0/1; add grid-center as
+   fallback when no tier-0 candidates).
+3. **If LB < 0.04**: meaningful private-game regression. Need to bisect
+   which game families Path B broke.
+4. Address the parse_failure rate — either simplify the prompt (drop the
+   tried_clicks block on simple-action games where it's irrelevant) or
+   instruct the model to wrap output in JSON more aggressively.
+
+### Updated LB scoreboard
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D1  | 04-29 | FORGE v19 fork | 0.19 | 0.00 |
+| D3  | 05-01 | FORGE variance probe | **0.24** | +0.05 |
+| D4  | 05-02 | trigger-bfs v0 | 0.10 | -0.09 |
+| D5  | 05-03 | MASTER v7 | 0.21 | +0.02 |
+| D9  | 05-07 | Goose CNN v2 | 0.17 | -0.02 |
+| D15 | 05-13 | trigger-bfs+segmenter v1 | 0.12 | -0.07 |
+| D16 | 05-14 | FORGE v2 resubmit (errored) | ERROR | — |
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D18 | 05-16 | (slot expired unused) | — | — |
+| D19 | 05-17 | **Qwen Phase-1 + Path B** | **PENDING** | — |
+
 ## 2026-05-15 — D17: Phase-1 Qwen built + 4-game dev smoke + fallback submit
 
 ### Headline
