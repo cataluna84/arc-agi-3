@@ -96,12 +96,23 @@ Dev kernel v6 4-game smoke (ls20, ft09, vc33, lp85 × 100 actions each):
 lp85 each clear L1 (lp85 was 0 → 1 with Path B). ft09 still stuck because
 the segmenter doesn't surface its interactive region — Phase-1.5 work.
 Comp kernel `cataluna84/qwen-phase1-comp-arc-agi-3` v1 push: COMPLETE in
-save-mode. Comp submission **ref 52740633 PENDING** at 2026-05-17 11:41 UTC;
-LB result lands ~24h later.
+save-mode. Comp submission **ref 52740633** at 2026-05-17 11:41 UTC scored
+**LB 0.12** — exactly equal to the D15/D17 trigger-bfs-segmenter floor.
+Dev-smoke wins on vc33 + lp85 did not propagate to the broader 110-game
+public eval, suggesting the segmenter's tier-0/1 candidate set misses
+the interactive region on many games (same failure mode as ft09 in dev).
+Phase 1.5 owed: richer candidate generation (tier 2/3 + non-segmenter
+fallbacks) before another Qwen comp submit.
 
 **Earlier D17 status (history)**: First smoke (no fix) showed 4/5 gates pass,
 no_change_rate=0.575 (FAIL). D17 slot used on trigger-bfs-segmenter v1
 fallback (ref 52682163, scored 0.12).
+
+**D20 update (2026-05-18)**: D19 result was 0.12 (= trigger-bfs floor).
+Diagnosis: segmenter tier 0-1 candidates miss the interactive region on
+many private games. Phase 1.5 fix shipped (`_DEFAULT_CANDIDATES` 8 → 14
++ 9 geometric fallback coords). D20 submission ref **52783366 PENDING**
+at 2026-05-18 16:40 UTC.
 
 Qwen chooses every action, but receives structured state context and is
 constrained by guards.

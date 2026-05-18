@@ -1,0 +1,19 @@
+{
+  "experiment": "exp011_trigger_bfs_mcts",
+  "kernel_slug": "cataluna84/trigger-bfs-mcts-comp-arc-agi-3",
+  "competition": "arc-prize-2026-arc-agi-3",
+  "agent_class": "agents.trigger_bfs_mcts_agent:TriggerBFSMCTSAgent",
+  "approach": "UCB1-MCTS over (action_id, click_bucket) keys on top of state-graph dedup; segmenter-derived click candidates + deterministic fallbacks + uniform-random bucket; no torch / no LLM",
+  "decision_rule": {
+    "if_lb_ge_0_25": "UCB1 + state-graph compounds; next step is per-action priors or learnable Q",
+    "if_lb_in_0_18_0_25": "modest lift; tune c_uct in {1.0, 2.0, 4.0} via local sweep before next submit",
+    "if_lb_in_0_12_0_18": "marginal lift over trigger-bfs v1; revisit click-bucket discretization or add backtracking-via-replay",
+    "if_lb_le_0_12": "regression; roll back to trigger-bfs v1"
+  },
+  "data_points": [],
+  "local_smoke": {
+    "pytest": "PENDING",
+    "smoke_22": "PENDING",
+    "sweep_4_games_max100_seed0": null
+  }
+}

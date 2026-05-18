@@ -130,6 +130,7 @@ ignore = [
 "experiments/**/*.py" = ["T201", "ARG001", "ARG002"]
 # Notebook builder: long lines are literal command strings that mustn't break.
 "experiments/exp008_trigger_bfs_seg/build_notebook.py" = ["E501", "RUF005"]
+"experiments/exp011_trigger_bfs_mcts/comp_kernel/build_notebook.py" = ["E501", "RUF005"]
 # Phase-1 Qwen builders: long lines inside raw-string inlined source are intentional.
 "experiments/exp004_qwen_agent/comp_kernel_v2/build_notebook.py" = ["E501", "RUF005"]
 "experiments/exp004_qwen_agent/dev_kernel_v3/build_notebook.py" = ["E501", "RUF005", "E402", "I001"]

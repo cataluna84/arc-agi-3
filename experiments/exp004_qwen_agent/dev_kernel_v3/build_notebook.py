@@ -82,7 +82,7 @@ for candidate in [
         break
 
 print(f"env_dir = {env_dir}")
-GAMES = ['ls20', 'ft09', 'vc33', 'lp85']
+GAMES = ['ls20', 'ft09', 'vc33', 'lp85', 'r11l', 's5i5']
 ACTIONS_PER_GAME = 100
 RESULTS = {'games': [], 'env_dir': env_dir}
 

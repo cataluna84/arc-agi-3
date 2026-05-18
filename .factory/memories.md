@@ -5,6 +5,172 @@
 
 ---
 
+## 2026-05-18 — D20: Phase 1.5 (richer ACTION6 candidates + 9 geometric fallbacks) submitted + Option B (MCTS) shelved
+
+### Headline
+
+- **Phase 1.5 built**: `_DEFAULT_CANDIDATES` bumped 8 → 14; segmenter
+  tier 0-3 enumeration unchanged; **9 deterministic geometric fallbacks
+  appended after segmenter coords**: center (32,32) + 4 quadrant
+  centroids + 4 mid-edges. tier=4 tag distinguishes fallbacks from
+  segmenter segments.
+- **Submitted D20** (ref **52783366**, PENDING at 2026-05-18 16:40 UTC,
+  comp_kernel_v2 v2). Goal: see if geometric fallbacks unblock
+  ft09-class sparse-segmenter games.
+- **Option B (MCTS over TriggerBFS) shelved**: built end-to-end (438 LOC
+  agent + 13 pytest + 22-check smoke + comp kernel save-mode COMPLETE in
+  ~30s) but 4-game local SDK sweep @ max-actions=400 cleared 0 levels on
+  any of ls20/ft09/vc33/lp85 (vs Qwen Phase-1+Path B's 2 levels on
+  vc33+lp85 at max-actions=100). Root cause: UCB1 with ~20-key fan-out
+  needs 50+ samples per key to escape the +inf bulk-init phase = 700+
+  steps before priors kick in. With 100-400 step budgets, behavior is
+  effectively random. **Not submitting B today.**
+
+### Phase 1.5 implementation
+
+In `agents/qwen_agent.py`:
+- New constant `_ACTION6_FALLBACK_COORDS` (9 (x,y) tuples).
+- `_segment_action6_candidates` now dedupes via a `seen_coords: set`,
+  bumps cap to 14, and always appends fallbacks with tier=4 after the
+  segmenter pass. Exception path returns the 9 fallbacks (not `[]`) so
+  any ACTION6 game has at least 9 candidates to cycle through via
+  Path B's tried_clicks_in_prompt mechanism.
+
+Mirrored in `experiments/exp004_qwen_agent/comp_kernel_v2/build_notebook.py`
+(`_DEFAULT_CANDIDATES = 14`, `_ACTION6_FALLBACK_COORDS` constant, same
+dedupe + append logic in the inlined `QwenAgent._segment_action6_candidates`).
+
+Dev kernel game list bumped `['ls20', 'ft09', 'vc33', 'lp85']` →
+`['ls20', 'ft09', 'vc33', 'lp85', 'r11l', 's5i5']` (6 games, +r11l + s5i5
+per Rudakov 2026 ACTION6-heavy list).
+
+### Tests + smokes
+
+- pytest: **92/92 PASS** (3 new tests for the Phase 1.5 fallback path
+  on top of 19 from Phase 1 + 13 from MCTS Option B + 57 pre-existing).
+- `scripts/qwen_phase1_smoke_local.py`: **31/31 PASS** (one cap-check
+  updated from 8 → 14).
+- `scripts/qwen_agent_smoke_local.py`: 22/22 PASS (legacy unchanged).
+- `scripts/trigger_bfs_mcts_smoke_local.py`: 22/22 PASS (Option B).
+- Ruff lint + format clean.
+
+### What we expect from D20 LB
+
+The dev kernel v7 with Phase 1.5 + 6-game smoke is still RUNNING on RTX
+6000 (queue contention pushed save-mode to ~10+ min — comp save-mode
+also took ~12 min today, vs 90s yesterday).
+
+Reasonable LB band:
+- **0.12 — no change**: fallbacks don't help on most private games
+  because Path B's tried_clicks_in_prompt needs the LLM to actually
+  cycle through (parse-failure rate may be high under longer prompt).
+- **0.14-0.18 — modest lift**: fallbacks unblock a handful of
+  ft09-class games where the interactive region is geometrically
+  predictable (center / quadrants).
+- **0.20+ — significant lift**: many games have interactive elements
+  near the grid center or quadrant centroids that the Path B model is
+  willing to try once it sees fallbacks listed.
+
+Comp_kernel v2 save-mode COMPLETE (verified before submit).
+
+### Option B postmortem
+
+`agents/trigger_bfs_mcts_agent.py` is in repo but not on the comp
+submission. The build verified that the MCTS-over-StateGraph
+infrastructure works (state graph + UCB1 + click-bucket tracking).
+The empirical issue is the budget/fan-out ratio: ARC-AGI-3's 100-400
+action budgets are too tight for UCB1 to escape its exploration phase
+when each state has 14-20 distinct (action, click_bucket) keys.
+
+Possible future tweaks (not pursued today):
+1. **Lower exploration constant** c_uct: 2.0 → 0.5 to shorten the
+   exploration phase.
+2. **Prune the fan-out**: only enumerate ACTION6 buckets if the previous
+   visit to this state showed delta_pixels > 0 for ANY click; otherwise
+   only try simple actions.
+3. **Per-state action prior** from segmenter saliency to pre-bias UCB1's
+   initial Q values (warm-start instead of +inf bulk init).
+
+Saving these as branches in the revival plan but not pursuing them
+unless D20 / D21 outcomes warrant.
+
+### Updated LB scoreboard
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D18 | 05-16 | (slot expired unused) | — | — |
+| D19 | 05-17 | Qwen Phase-1 + Path B | 0.12 | -0.07 |
+| D20 | 05-18 | **Qwen Phase-1.5 (richer candidates + geometric fallbacks)** | **PENDING** | — |
+
+### Next (post-D20 LB result)
+
+Per the decision tree carried over from D19:
+- **LB ≥ 0.18** → Phase 1.5 is the win; explore Phase 2 (Qwen as
+  candidate-action ranker) on top of richer candidates.
+- **LB 0.13-0.17** → modest lift; layer Option G (Qwen-as-verifier)
+  next, OR re-try Option B's MCTS with the c_uct=0.5 + segmenter prior
+  tweaks.
+- **LB ≤ 0.12** → "LLM as policy" is the wrong shape for this problem.
+  Pivot to Track D (CNN action prior, Stochastic Goose family) which
+  has a track record of 0.25-0.42 on the public LB.
+
+---
+
+## 2026-05-17 — D19 result: Qwen Phase-1 + Path B = LB 0.12 (at trigger-bfs floor)
+
+### Result
+
+Submission ref **52740633** COMPLETE at LB **0.12** — exactly equal to
+D15 / D17 trigger-bfs-segmenter floor. No regression, no improvement.
+
+### Read
+
+Dev-smoke wins on vc33 + lp85 (both cleared L1) did not propagate to the
+public LB. Path B's `tried_clicks_in_prompt` + masked hash got the Qwen
+agent through the ACTION6-only deadlock on lp85 specifically, but in the
+broader 110-game comp eval the public score landed at the same number as
+the structural prior alone. Likely failure modes for the unseen ~108
+games: the segmenter only surfaces tier-0/1 candidates, so any game whose
+interactive region sits in tier 2/3 (or off-segmenter entirely, like
+ft09) collapses to ACTION6-spam regardless of Path B.
+
+### Decision rule applied (from the D19 entry's "Next" branch)
+
+> "If 0.04 ≤ LB < 0.13: Path B is at-or-below floor. Fix ft09's
+> ACTION6-spam in Phase-1.5 — likely needs richer candidate generation."
+
+0.12 is at-the-floor. Phase 1.5 work owed for D20+:
+
+1. **Richer ACTION6 candidates**: include tier 2/3 segments, scan all
+   non-status-bar segments, add grid-center / corner / quadrant-centroid
+   fallbacks when tier-0/1 is empty or already exhausted via tried_clicks.
+2. **Reconsider parse_failure_count spikes** (vc33: 41/53). The Path B
+   prompt may be over-stuffed; consider dropping the `Untried at this
+   state:` line when `available_actions = [6]` only (no rotation possible
+   anyway). That shortens the prompt and may improve JSON-output adherence.
+3. **Optional: log ALL ACTION6 candidates the model is offered + chose
+   over a single dev game** to verify Path B's "Pick a DIFFERENT candidate"
+   instruction is actually being followed by the LLM, vs. it ignoring the
+   constraint and the regex fallback path doing all the work.
+
+### Updated LB scoreboard
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D1  | 04-29 | FORGE v19 fork | 0.19 | 0.00 |
+| D3  | 05-01 | FORGE variance probe | **0.24** | +0.05 |
+| D4  | 05-02 | trigger-bfs v0 | 0.10 | -0.09 |
+| D5  | 05-03 | MASTER v7 | 0.21 | +0.02 |
+| D9  | 05-07 | Goose CNN v2 | 0.17 | -0.02 |
+| D15 | 05-13 | trigger-bfs+segmenter v1 | 0.12 | -0.07 |
+| D16 | 05-14 | FORGE v2 resubmit (errored) | ERROR | — |
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D18 | 05-16 | (slot expired unused) | — | — |
+| D19 | 05-17 | Qwen Phase-1 + Path B | **0.12** | -0.07 (= floor) |
+
+---
+
 ## 2026-05-17 — D19: Path B fix (masked hash + tried-clicks-in-prompt) → 5/5 gates pass → Qwen Phase-1 submitted
 
 ### Day-counter correction
@@ -121,7 +287,7 @@ parquet emitted. No errors. Kernel slug matches metadata id (gotcha #20).
 | D16 | 05-14 | FORGE v2 resubmit (errored) | ERROR | — |
 | D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
 | D18 | 05-16 | (slot expired unused) | — | — |
-| D19 | 05-17 | **Qwen Phase-1 + Path B** | **PENDING** | — |
+| D19 | 05-17 | Qwen Phase-1 + Path B | **0.12** | -0.07 (equal to D15/D17 trigger-bfs floor) |
 
 ## 2026-05-15 — D17: Phase-1 Qwen built + 4-game dev smoke + fallback submit
 

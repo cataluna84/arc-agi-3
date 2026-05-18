@@ -62,16 +62,16 @@ def test_segment_action6_candidates_returns_at_most_k():
 
     agent = QwenAgent()
     grid = [[0] * 64 for _ in range(64)]
-    # 12 small blobs of different colors → expect candidates capped at 8.
-    for i in range(12):
+    # Many small blobs + 9 geometric fallbacks → expect candidates capped at 14.
+    for i in range(20):
         y0 = (i * 5) % 60
         x0 = (i * 7) % 60
         for y in range(y0, min(64, y0 + 3)):
             for x in range(x0, min(64, x0 + 3)):
                 grid[y][x] = 6 + (i % 10)
     cands = agent._segment_action6_candidates([grid])
-    assert 0 < len(cands) <= 8
-    # Labels are C0..C7 in order.
+    assert 0 < len(cands) <= 14
+    # Labels are C0..C{N-1} in order (no gaps from dedup).
     for idx, c in enumerate(cands):
         assert c["label"] == f"C{idx}"
 
@@ -95,7 +95,58 @@ def test_segment_action6_candidates_coords_within_bounds():
     for c in cands:
         assert 0 <= c["x"] < 64
         assert 0 <= c["y"] < 64
-        assert 0 <= c["tier"] <= 3
+        # Tier 0-3 = segmenter tiers; tier 4 = Phase 1.5 deterministic fallback.
+        assert 0 <= c["tier"] <= 4
+
+
+# ---------------------------------------------------------------------------
+# Phase 1.5: deterministic geometric fallbacks for sparse-segmenter games
+# ---------------------------------------------------------------------------
+
+
+def test_segment_action6_candidates_appends_geometric_fallbacks():
+    """When the segmenter is sparse, deterministic geometric coords must be
+    appended so the LLM has SOMETHING to cycle through via Path B."""
+    pytest.importorskip("numpy")
+    from agents.qwen_agent import _ACTION6_FALLBACK_COORDS, QwenAgent
+
+    agent = QwenAgent()
+    # All-zero grid → segmenter finds 1 huge background segment → no
+    # candidates from tiers 0-3 → only fallbacks should appear.
+    grid = [[0] * 64 for _ in range(64)]
+    cands = agent._segment_action6_candidates([grid])
+    assert len(cands) == len(_ACTION6_FALLBACK_COORDS)
+    # First fallback must be (32, 32) = center.
+    assert (cands[0]["x"], cands[0]["y"]) == (32, 32)
+    # All fallbacks have tier=4.
+    for c in cands:
+        assert c["tier"] == 4
+    # Sequential C0..C{N-1} labels.
+    for idx, c in enumerate(cands):
+        assert c["label"] == f"C{idx}"
+
+
+def test_segment_action6_candidates_fallbacks_dedupe_with_segmenter():
+    """If a segmenter candidate coincidentally matches a fallback coord, only
+    one entry should appear (label sequence stays gapless)."""
+    pytest.importorskip("numpy")
+    from agents.qwen_agent import QwenAgent
+
+    agent = QwenAgent()
+    # Plant a salient blob centered EXACTLY at the (32,32) center fallback so
+    # the segmenter's mask_to_click_coords (rng=Random(0)) is likely to pick
+    # (32,32) or nearby.
+    grid = [[0] * 64 for _ in range(64)]
+    for y in range(31, 34):
+        for x in range(31, 34):
+            grid[y][x] = 7
+    cands = agent._segment_action6_candidates([grid])
+    # All (x,y) coords should be unique.
+    xys = [(c["x"], c["y"]) for c in cands]
+    assert len(xys) == len(set(xys))
+    # Labels still sequential.
+    for idx, c in enumerate(cands):
+        assert c["label"] == f"C{idx}"
 
 
 # ---------------------------------------------------------------------------

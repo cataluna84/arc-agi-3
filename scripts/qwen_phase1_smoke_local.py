@@ -154,7 +154,7 @@ def suite_segment_action6_candidates() -> None:
             for x in range(x0, min(64, x0 + 3)):
                 multi_grid[y][x] = 6 + (i % 10)
     cands = agent._segment_action6_candidates([multi_grid])
-    _check("candidates capped at 8 with many blobs", len(cands) <= 8, detail=f"len={len(cands)}")
+    _check("candidates capped at 14 with many blobs", len(cands) <= 14, detail=f"len={len(cands)}")
 
 
 # ---------------------------------------------------------------------------

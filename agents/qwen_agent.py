@@ -122,8 +122,27 @@ _DEFAULT_MAX_NEW = 24
 # Outcome-memory entries fed to the model per call. Richer per-entry content
 # (delta, levelΔ) costs tokens, so we trim from 8 to 6 vs the D2 baseline.
 _DEFAULT_HIST_LEN = 6
-# Top-K ACTION6 click candidates surfaced in the prompt.
-_DEFAULT_CANDIDATES = 8
+# Top-K ACTION6 click candidates surfaced in the prompt. Bumped from 8 → 14
+# in Phase 1.5 (D19+) so the segmenter list can be supplemented with 9
+# deterministic geometric fallbacks for games where the segmenter under-
+# generates (e.g. ft09).
+_DEFAULT_CANDIDATES = 14
+
+# Deterministic ACTION6 fallback coordinates. Appended after segmenter
+# candidates so the LLM has SOMETHING to cycle through (via Path B's
+# tried-clicks mechanism) even when frame_segmenter surfaces no usable
+# tier-0..3 segments. 9 points: center + 4 quadrant centroids + 4 mid-edges.
+_ACTION6_FALLBACK_COORDS: list[tuple[int, int]] = [
+    (32, 32),  # center
+    (16, 16),  # NW quadrant
+    (48, 16),  # NE quadrant
+    (16, 48),  # SW quadrant
+    (48, 48),  # SE quadrant
+    (32, 0),  # top mid-edge
+    (32, 63),  # bottom mid-edge
+    (0, 32),  # left mid-edge
+    (63, 32),  # right mid-edge
+]
 _FRAME_UPSCALE = 8  # 64*8 = 512 px; matches Qwen vision encoder's preferred res
 
 # 16-colour palette (matches arc-agi-3 conventions: 0=black, 1-15 ARC colours)
@@ -551,6 +570,7 @@ class QwenAgent:
             rng = random.Random(0)
 
             results: list[dict] = []
+            seen_coords: set[tuple[int, int]] = set()
             for tier_idx in range(4):
                 tier_sids = [sid for sid in tiers[tier_idx] if segments[sid].area <= half]
                 # Largest area first within tier (deterministic).
@@ -559,19 +579,47 @@ class QwenAgent:
                     coord = fs.mask_to_click_coords(label_map, sid, rng=rng)
                     if coord is None:
                         continue
+                    xy = (int(coord[0]), int(coord[1]))
+                    if xy in seen_coords:
+                        continue
+                    seen_coords.add(xy)
                     results.append(
                         {
                             "label": f"C{len(results)}",
-                            "x": int(coord[0]),
-                            "y": int(coord[1]),
+                            "x": xy[0],
+                            "y": xy[1],
                             "tier": tier_idx,
                         }
                     )
                     if len(results) >= _DEFAULT_CANDIDATES:
                         return results
+            # Phase 1.5 fallbacks (D20): always append geometric defaults so the
+            # LLM has SOMETHING to cycle through on games where the segmenter
+            # under-generates. Skip duplicates with segmenter coords. tier=4
+            # tags these as "fallback" so they're picked last but still
+            # available for Path B's tried-clicks rotation.
+            for fx, fy in _ACTION6_FALLBACK_COORDS:
+                if (fx, fy) in seen_coords:
+                    continue
+                seen_coords.add((fx, fy))
+                results.append(
+                    {
+                        "label": f"C{len(results)}",
+                        "x": fx,
+                        "y": fy,
+                        "tier": 4,
+                    }
+                )
+                if len(results) >= _DEFAULT_CANDIDATES:
+                    break
             return results
         except Exception:
-            return []
+            # Last-resort: return the deterministic fallbacks only so callers
+            # always have non-empty candidates when ACTION6 is in avail.
+            return [
+                {"label": f"C{i}", "x": fx, "y": fy, "tier": 4}
+                for i, (fx, fy) in enumerate(_ACTION6_FALLBACK_COORDS)
+            ]
 
     def _apply_guards(
         self,

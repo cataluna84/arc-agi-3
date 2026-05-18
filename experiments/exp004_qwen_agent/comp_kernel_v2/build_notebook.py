@@ -497,7 +497,13 @@ _DEFAULT_DTYPE = "bf16"
 _DEFAULT_DEVICE_MAP = "auto"
 _DEFAULT_MAX_NEW = 24
 _DEFAULT_HIST_LEN = 6
-_DEFAULT_CANDIDATES = 8
+_DEFAULT_CANDIDATES = 14
+# Phase 1.5 (D20): always append these 9 geometric fallbacks after segmenter
+# candidates so the LLM has SOMETHING to cycle through on sparse-segmenter games.
+_ACTION6_FALLBACK_COORDS = [
+    (32, 32), (16, 16), (48, 16), (16, 48), (48, 48),
+    (32, 0), (32, 63), (0, 32), (63, 32),
+]
 _FRAME_UPSCALE = 8
 
 
@@ -754,6 +760,7 @@ class QwenAgent:
             half = frame_pixels // 2
             rng = random.Random(0)
             results = []
+            seen = set()
             for tier_idx in range(4):
                 tier_sids = [sid for sid in tiers[tier_idx] if segments[sid].area <= half]
                 tier_sids.sort(key=lambda sid: -segments[sid].area)
@@ -761,12 +768,28 @@ class QwenAgent:
                     coord = mask_to_click_coords(label_map, sid, rng=rng)
                     if coord is None:
                         continue
-                    results.append({"label": f"C{len(results)}", "x": int(coord[0]), "y": int(coord[1]), "tier": tier_idx})
+                    xy = (int(coord[0]), int(coord[1]))
+                    if xy in seen:
+                        continue
+                    seen.add(xy)
+                    results.append({"label": f"C{len(results)}", "x": xy[0], "y": xy[1], "tier": tier_idx})
                     if len(results) >= _DEFAULT_CANDIDATES:
                         return results
+            # Phase 1.5: always append geometric fallbacks (tier=4) for
+            # sparse-segmenter games (e.g. ft09). Dedupes against segmenter coords.
+            for fx, fy in _ACTION6_FALLBACK_COORDS:
+                if (fx, fy) in seen:
+                    continue
+                seen.add((fx, fy))
+                results.append({"label": f"C{len(results)}", "x": fx, "y": fy, "tier": 4})
+                if len(results) >= _DEFAULT_CANDIDATES:
+                    break
             return results
         except Exception:
-            return []
+            return [
+                {"label": f"C{i}", "x": fx, "y": fy, "tier": 4}
+                for i, (fx, fy) in enumerate(_ACTION6_FALLBACK_COORDS)
+            ]
 
     def _apply_guards(self, parsed, frame, candidates, node=None):
         avail = [int(a) for a in (getattr(frame, "available_actions", None) or [])]
