@@ -5,6 +5,99 @@
 
 ---
 
+## 2026-05-19 — D21: pivoted to forking public 0.39 Hybrid Solver notebook (exp012)
+
+### Headline
+
+- **D20 LB result**: 0.12 (same as D17 / D19 floor). Three Qwen variants in
+  a row at the trigger-bfs floor confirmed the "LLM as policy" plateau.
+- **Pivot**: forked the public Kaggle notebook
+  `vyankteshdwivedi/arc-agi-3-hybrid-solver-bfs-cnn-heuristics` (LB ~0.39
+  per `.factory/rules/leaderboard-anchors.md`). Pulled, inspected, save-mode
+  COMPLETE in ~30s, submitted.
+- **D21 submission ref 52807486**, PENDING at 2026-05-19 10:39 UTC. Expected
+  LB band 0.25-0.42; most-likely ~0.30.
+
+### What's in the fork
+
+`experiments/exp012_hybrid_solver/comp_kernel/hybrid_solver_v10_comp.ipynb`
+= verbatim copy of source notebook. Self-identifies as "MASTER BASELINE v10"
+and merges 6 public notebooks:
+
+- CORE: FORGE v19 (op_2) — A* with game-introspection heuristic, transient
+  field detection, `_get_valid_actions()`, dynamic action-rescan BFS, object
+  model tracking (static/dynamic classification), `_fast_deepcopy` (skips
+  camera for 2-3x speedup), level advancement by action replay.
+- ADDITIONS from FORGE v17 (op_3): beam search fallback (width 20-200,
+  depth 60), sprite permutation for click-only ≤8-sprite games, stride-1
+  neighbor click probing, prioritized experience replay, adaptive BFS time
+  budget.
+- ADDITIONS from MCTS notebook (op_5): click masking during CNN inference
+  (only predict known-effective positions), novelty-guided action selection
+  during exploration phase.
+
+### Inspection findings (78 KB inlined agent)
+
+- Clean imports: `numpy, torch, agents.agent.Agent, arcengine` (FrameData,
+  GameAction, GameState, ActionInput). No internet, no API keys, no
+  hardcoded secrets.
+- 3-tier game-file discovery: competition mount → `arc_env.environment_info.local_dir`
+  → glob across `/kaggle/input`, `/tmp`, `/kaggle/working`.
+- Optional pretrained weights at
+  `/kaggle/input/forge-pretrained-weights/pretrained_weights.pt` with silent
+  fallback to random init (source author's 0.39 was achieved with random
+  init since their `dataset_sources` is also empty).
+- Self-imposed 6h timeout (5700 s) well within Kaggle's 9h cap.
+- Outer `choose_action` body wrapped in `try/except` (line 1635) — gotcha
+  #17 safe.
+- Same harness wiring (gateway:8001 + ARC-AGI-3-Agents copy + `main.py
+  --agent myagent`) as our exp008 / master_v7 kernels.
+- `enable_gpu: false` — frees RTX 6000 quota for parallel dev work.
+
+### Process
+
+1. `kaggle kernels pull vyankteshdwivedi/arc-agi-3-hybrid-solver-bfs-cnn-heuristics`
+2. Created `experiments/exp012_hybrid_solver/comp_kernel/` with our slug
+   `cataluna84/hybrid-solver-v10-comp-arc-agi-3`.
+3. `kaggle kernels push` → save-mode COMPLETE in ~30s.
+4. Inspected the 78 KB `my_agent.py`; verified clean.
+5. User confirmed submit.
+6. `kaggle competitions submit -k ... -v 1 -f submission.parquet`.
+
+### Attribution + license
+
+Source: https://www.kaggle.com/code/vyankteshdwivedi/arc-agi-3-hybrid-solver-bfs-cnn-heuristics
+(public, `is_private: false`). Kaggle code competition notebooks default to
+permissive licensing for re-use within the same competition. ARC Prize 2026
+rules accept 3rd-party code under permissive open-source licenses (Apache-2.0,
+GPLv3). If this submission's score is prize-eligible, we will publish an
+open-source disclosure under the same terms before any prize milestone.
+
+The `experiments/exp012_hybrid_solver/README.md` documents the fork
+provenance + risks. CHANGELOG.md will mirror.
+
+### Updated LB scoreboard
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D19 | 05-17 | Qwen Phase-1 + Path B | 0.12 | -0.07 |
+| D20 | 05-18 | Qwen Phase-1.5 (richer candidates + 9 fallbacks) | 0.12 | -0.07 |
+| **D21** | **05-19** | **Hybrid Solver v10 (exp012 fork)** | **PENDING** | — |
+
+### Next (post-D21 LB result)
+
+- **LB ≥ 0.30**: fork strategy validated; iterate by extending the inlined
+  code (add our frame-segmenter ACTION6 prior, or wire in pretrained
+  weights from a custom CNN training pipeline).
+- **LB 0.20-0.29**: fork is between FORGE-family floor (0.21-0.24) and the
+  source author's 0.39. Investigate whether the gap is reproducibility
+  variance or a structural issue with the harness on our account.
+- **LB < 0.20**: fork failed to reproduce; revert to FORGE/master_v7 family
+  on D22 and analyze why.
+
+---
+
 ## 2026-05-18 — D20: Phase 1.5 (richer ACTION6 candidates + 9 geometric fallbacks) submitted + Option B (MCTS) shelved
 
 ### Headline
@@ -54,24 +147,62 @@ per Rudakov 2026 ACTION6-heavy list).
 - `scripts/trigger_bfs_mcts_smoke_local.py`: 22/22 PASS (Option B).
 - Ruff lint + format clean.
 
-### What we expect from D20 LB
+### Dev v7 smoke RESULT — mixed signal, expected regression
 
-The dev kernel v7 with Phase 1.5 + 6-game smoke is still RUNNING on RTX
-6000 (queue contention pushed save-mode to ~10+ min — comp save-mode
-also took ~12 min today, vs 90s yesterday).
+Dev kernel v7 6-game smoke (RTX 6000, COMPLETE in ~22 min total) finished
+AFTER the D20 submission was already in flight. Per-game outcome:
 
-Reasonable LB band:
-- **0.12 — no change**: fallbacks don't help on most private games
-  because Path B's tried_clicks_in_prompt needs the LLM to actually
-  cycle through (parse-failure rate may be high under longer prompt).
-- **0.14-0.18 — modest lift**: fallbacks unblock a handful of
-  ft09-class games where the interactive region is geometrically
-  predictable (center / quadrants).
-- **0.20+ — significant lift**: many games have interactive elements
-  near the grid center or quadrant centroids that the Path B model is
-  willing to try once it sees fallbacks listed.
+| Game | D19 Phase 1 | D20 Phase 1.5 | Change |
+|---|---|---|---|
+| ls20 | 0 levels | 0 levels | — |
+| ft09 | 0 levels, 100% no-change | 0 levels, 100% no-change | **fallbacks didn't help** |
+| vc33 | 1 level (53 actions) | 1 level (53 actions) | held |
+| **lp85** | **1 level (67 actions)** | **0 levels (19 → GAME_OVER)** | **REGRESSED** |
+| r11l | (new) | 0 levels (60 actions), 0% no-change | — |
+| s5i5 | (new) | 0 levels (50 actions), 0% no-change | — |
 
-Comp_kernel v2 save-mode COMPLETE (verified before submit).
+All 5 aggregate gates still pass (vc33 carries `levels_ge_1`,
+`aggregate_no_change_rate` 0.575 → 0.280), but the **per-game story is
+worse**: lp85 regressed and ft09 unfixed.
+
+### Two reads
+
+1. **ft09 conclusion**: the interactive region is NOT at any
+   tier-0..3 segment AND NOT at any of the 9 geometric fallback coords
+   (center / 4 quadrants / 4 mid-edges). Either it's a single pixel
+   of an unsalient color, or at an irregular off-cardinal coord that
+   no segmenter-or-geometric strategy will find without trial.
+2. **lp85 regression hypothesis**: with 14 candidates instead of 8,
+   the LLM's tried_clicks_in_prompt cycle takes longer to land on the
+   right click. lp85's per-level action budget (~20 actions before
+   GAME_OVER) doesn't tolerate a longer exploration phase. The model
+   triggers GAME_OVER at action 19, missing the L1 clear it achieved
+   in Phase 1 at action 67.
+
+### Expected D20 LB (revised downward)
+
+Was 0.14-0.20 pre-smoke. Now **0.08-0.13**:
+- vc33 carries (~+0.01-0.02 on the public 25-game subset).
+- lp85 loss removes ~0.01-0.02 that Phase 1 contributed.
+- ft09 unchanged at 0 levels.
+- ls20 / r11l / s5i5 / other private games unknown but likely neutral.
+- Worst case (0.08): lp85 regression cascades to other "tight per-level
+  budget" private games where Phase 1.5's longer exploration triggers
+  premature GAME_OVER.
+- Best case (0.12): vc33 carries; lp85 loss masked by gains elsewhere
+  (unlikely).
+- Most likely: 0.10-0.12.
+
+### Lesson learned (timing)
+
+We submitted D20 BEFORE the dev kernel v7 smoke completed (due to RTX
+6000 queue contention pushing both save-modes back ~10 min each, and
+user direction to "submit now"). Had we waited, the lp85 regression
+would have been visible and we could have rolled back to D19's v1
+kernel (which scored 0.12 and would have at least matched the floor)
+instead of risking a fresh regression. Saving this as a feedback memory:
+**always wait for the matching dev kernel smoke before pushing the comp
+submit, even when the slot is open.**
 
 ### Option B postmortem
 

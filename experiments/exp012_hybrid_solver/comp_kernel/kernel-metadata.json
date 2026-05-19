@@ -1,0 +1,17 @@
+{
+  "id": "cataluna84/hybrid-solver-v10-comp-arc-agi-3",
+  "title": "hybrid-solver-v10-comp-arc-agi-3",
+  "code_file": "hybrid_solver_v10_comp.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [],
+  "model_sources": [],
+  "competition_sources": [
+    "arc-prize-2026-arc-agi-3"
+  ],
+  "kernel_sources": []
+}
