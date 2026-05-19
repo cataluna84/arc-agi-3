@@ -1,0 +1,15 @@
+{
+  "id": "cataluna84/master-v7-comp-arc-agi-3",
+  "title": "MASTER v7 comp ARC-AGI-3",
+  "code_file": "master_v7_comp.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": ["arc-prize-2026-arc-agi-3"],
+  "model_sources": []
+}
