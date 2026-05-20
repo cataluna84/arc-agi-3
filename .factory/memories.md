@@ -5,6 +5,109 @@
 
 ---
 
+## 2026-05-20 — D22: variance re-roll of Hybrid Solver v10 (same kernel, time-based seed)
+
+### Headline
+
+- D21 (Hybrid Solver v10 fork) landed at LB **0.20**, +0.08 over the
+  0.12 floor but -0.19 below the source notebook's 0.39.
+- **D22 submit ref 52853603** PENDING at 2026-05-20 13:43 UTC. Same kernel
+  (`cataluna84/hybrid-solver-v10-comp-arc-agi-3` v1) — re-roll only.
+- The agent self-seeds with `int(time.time() * 1e6) + hash(game_id) % 1e6`
+  (line 1160 of `my_agent.py`), so re-runs are genuinely nondeterministic.
+
+### Decision rule for the D22 result
+
+| LB band | Read | Next |
+|---|---|---|
+| ≥ 0.30 | Variance is the whole story; 0.39 is reachable | Re-submit again D23 + iterate on prompt/CNN tuning |
+| 0.20-0.29 | Variance is real but bounded; structural gap to 0.39 | D23 Phase 2 work (segmenter prior + CNN cap) |
+| ≤ 0.19 | D21's 0.20 was lucky; structural average is lower | Drop the CNN entirely on D23, BFS+A* only |
+
+### LB scoreboard (updated)
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D19 | 05-17 | Qwen Phase-1 + Path B | 0.12 | -0.07 |
+| D20 | 05-18 | Qwen Phase-1.5 (richer candidates + 9 fallbacks) | 0.12 | -0.07 |
+| D21 | 05-19 | Hybrid Solver v10 fork | 0.20 | +0.01 |
+| **D22** | **05-20** | **Hybrid Solver v10 variance re-roll** | **PENDING** | — |
+
+---
+
+## 2026-05-19 — D21 result: Hybrid Solver v10 fork = LB 0.20 (+0.08 over floor, -0.19 below source)
+
+### Result
+
+ref **52807486** COMPLETE at **LB 0.20**. Beats every Qwen variant
+(D17/D19/D20 all 0.12) by +0.08, but under-reproduces the source notebook's
+public 0.39 by -0.19, and lands -0.04 below our D3 best (0.24).
+
+### Read
+
+The fork strategy is validated as a meaningful step up from the
+trigger-bfs floor (+0.08), but it falls into the decision-tree's middle
+branch:
+
+> "LB 0.20-0.29: fork is between FORGE-family floor (0.21-0.24) and the
+> source author's 0.39. Investigate whether the gap is reproducibility
+> variance or a structural issue with the harness on our account."
+
+Hypotheses for the -0.19 gap to 0.39:
+
+1. **Kaggle re-roll variance** — 0.39 is a single source-author run; our
+   seed/game-ordering may differ. The source notebook used to score ~0.39
+   on their account; same code on our account may simply land 0.20-0.39
+   across re-rolls. A free re-submit experiment would clarify.
+2. **CPU envelope on our run** — agent self-caps at 6h (5700 s). BFS +
+   CNN training every 10 steps over 110 games on CPU may exceed that,
+   killing scoring on late games (RHAE-weighted: late levels matter more
+   than early ones). Source author's notebook likely ran on a more
+   powerful container OR finished within budget.
+3. **Pretrained weights** — code path at line 1680 tries to load
+   `/kaggle/input/forge-pretrained-weights/pretrained_weights.pt`. Source
+   notebook's `dataset_sources` is empty in the captured metadata, but
+   maybe they attached the dataset out-of-band OR uploaded a custom
+   pretrained CNN OR something else. Without those weights our
+   random-init CNN under-guides BFS.
+
+### LB scoreboard (updated)
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D19 | 05-17 | Qwen Phase-1 + Path B | 0.12 | -0.07 |
+| D20 | 05-18 | Qwen Phase-1.5 (richer candidates + 9 fallbacks) | 0.12 | -0.07 |
+| **D21** | **05-19** | **Hybrid Solver v10 fork** | **0.20** | **+0.01** |
+
+Best to date: D3 FORGE variance = 0.24. D21 is our 2nd-best ever and the
+first time we've broken out of the 0.10-0.17 plateau in 2 weeks.
+
+### Next branches for D22+
+
+Three workable options, ranked by effort vs expected lift:
+
+1. **D22 — re-submit Hybrid Solver v10 unchanged** (variance probe).
+   Zero effort. If next-day LB is in 0.20-0.42 range, the +/-0.19 swing
+   IS variance and the 0.39 is achievable on a lucky re-roll.
+2. **D22 — modify Hybrid Solver v10 to drop the CNN entirely and rely on
+   BFS + A* alone** (or hard-cap CNN training to first 1000 steps).
+   Removes the CPU-envelope risk; expected LB 0.18-0.30 with much faster
+   per-action latency.
+3. **D22 — port our `agents/frame_segmenter.py` ACTION6 prior into the
+   Hybrid Solver's click coord sampling**, replacing its random/sprite
+   permutation with our 5-tier saliency. Expected LB 0.22-0.35 if the
+   segmenter prior adds real value.
+
+### Repo state
+
+- `experiments/exp012_hybrid_solver/` committed in `d844077`.
+- D21 entry in `.factory/memories.md` (this section).
+- LB scoreboard in `.factory/rules/leaderboard-anchors.md` updated.
+
+---
+
 ## 2026-05-19 — D21: pivoted to forking public 0.39 Hybrid Solver notebook (exp012)
 
 ### Headline

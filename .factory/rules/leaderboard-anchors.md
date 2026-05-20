@@ -28,7 +28,8 @@ and `experiments/exp002_forge_variance_probe/README.md`.
 | D18 | 2026-05-16 | (slot expired unused)                        | —       | —       |
 | D19 | 2026-05-17 | exp004 Qwen Phase-1 + Path B (masked-hash + tried-clicks-in-prompt) | 0.12    | -0.07   |
 | D20 | 2026-05-18 | exp004 Qwen Phase-1.5 (richer candidates + 9 geometric fallbacks) | 0.12    | -0.07   |
-| D21 | 2026-05-19 | exp012 Hybrid Solver v10 fork (FORGE v19 + beam + MCTS click masking) | PENDING | -       |
+| D21 | 2026-05-19 | exp012 Hybrid Solver v10 fork (FORGE v19 + beam + MCTS click masking) | 0.20    | +0.01   |
+| D22 | 2026-05-20 | exp012 Hybrid Solver v10 variance re-roll (time-based seed)            | PENDING | -       |
 
 Best to date: D3 (FORGE variance probe s3) at 0.24. The Goose CNN v2
 result (0.17 vs random 0.18) was the moment we pivoted from training
