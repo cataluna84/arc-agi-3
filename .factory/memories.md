@@ -5,6 +5,91 @@
 
 ---
 
+## 2026-05-21 — D23: pivoted to forking memoryAgent v6 (exp013) on RTX 6000
+
+### Headline
+
+- **D22 (Hybrid Solver v10 variance re-roll) result**: 0.18 (vs D21's 0.20).
+  n=2 mean = 0.19, σ = 0.014 → kernel is reliably 0.18-0.20, NOT 0.39.
+  Variance hypothesis FALSIFIED; the gap to 0.39 is structural.
+- **Public LB landscape check**: Tufa Labs took the lead at 0.69 on
+  2026-05-20 (their full ARC-AGI-3 entry, same team as StochasticGoose
+  preview-1st-place). 204 teams at ≥0.30, 48 at ≥0.40. Our recorded rank
+  401/894 with score 0.24 (D3 FORGE).
+- **`forge-pretrained-weights` Kaggle dataset doesn't exist publicly** —
+  the Hybrid Solver author's silent pretrained-weights fallback path means
+  we can't reproduce their 0.39 from our `dataset_sources: []` kernel.
+- **D23 pivot**: forked `yuriao/arc-agi-3-memoryagent` (v6) → exp013. Source
+  family anchor ~0.28 per our scoreboard. Different architecture:
+  cross-game-shared TransitionMemory + BFS object extraction + click
+  heatmap from past frame-changing clicks. v6 innovation = persist memory
+  across game instances of the same type (`_SHARED_MEMORY: dict[str,
+  TransitionMemory]`, class-level).
+
+### exp013 submission
+
+- ref **52873329** PENDING at 2026-05-21 05:12 UTC.
+- Kernel: `cataluna84/memory-agent-v6-comp-arc-agi-3` v2.
+- Pushed with `--accelerator NvidiaRtxPro6000` (per gotcha #16, this is
+  the actual mechanism for hardware allocation — `enable_gpu=true` in
+  metadata is insufficient).
+- v1 pushed without `--accelerator` first (defaulted to P100 per gotcha
+  #16), then re-pushed as v2 with the flag. Save-mode v2 COMPLETE in 50s
+  on RTX 6000 (no queue contention this time).
+
+### Inspection findings (~32 KB inlined agent)
+
+- Imports clean: `hashlib, logging, os, random, time, traceback,
+  collections.deque, typing, numpy, torch (+nn, +nn.functional, +optim),
+  agents.agent.Agent, arcengine.{FrameData, GameAction, GameState}`. All
+  stdlib or Kaggle-image-shipped.
+- Zero hardcoded paths to `/kaggle/input`. Zero `http://`, `https://`,
+  `api_key`, `urlopen`, `requests.` calls.
+- `class MyAgent(Agent)` at line 463, `MAX_ACTIONS = float('inf')` at
+  line 477 (relies on game-side GAME_OVER, same as Hybrid Solver).
+- Same harness wiring (`gateway:8001` + `cp ARC-AGI-3-Agents` + `python
+  main.py --agent myagent`) as exp008 / exp012.
+- Markdown header documents v3-v5 fixes retained; v6 specifically adds
+  cross-game memory persistence (capacity 4000/4000 in v6 vs 1000/1000
+  in v5).
+
+### Why this is structurally different from exp012
+
+| Property | exp012 Hybrid Solver v10 | exp013 memoryAgent v6 |
+|---|---|---|
+| Core | FORGE v19 BFS + A* + beam search | TransitionMemory + object extraction |
+| Click prior | Sprite permutation + MCTS click masking | Click heatmap from past changes |
+| State dedup | Hash + state graph | Frame descriptor v2 |
+| Memory scope | Per-level | Cross-game-type (v6 upgrade) |
+| GPU | CPU-only | RTX 6000 (T4 in source) |
+| Code size | 78 KB | 32 KB |
+
+### What we expect
+
+- Conservative band: 0.20-0.32.
+- If LB ≥ 0.30: exp013 is our new best; iterate by tuning memory
+  capacities, integrating with our frame_segmenter, etc.
+- If LB 0.20-0.29: above 0.18 Hybrid Solver floor but below 0.30 cliff;
+  combine memoryAgent + Hybrid Solver insights for D24.
+- If LB ≤ 0.20: the public Kaggle notebook fork strategy plateaus around
+  this number across multiple architectures (Hybrid Solver 0.18-0.20,
+  memoryAgent likely similar). Pivot to building our own or to Tufa Labs'
+  0.69 path (StochasticGoose CNN training-on-the-fly, our existing
+  agents/goose_cnn_agent.py at 0.17 LB).
+
+### LB scoreboard (updated)
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D19 | 05-17 | Qwen Phase-1 + Path B | 0.12 | -0.07 |
+| D20 | 05-18 | Qwen Phase-1.5 (richer candidates + 9 fallbacks) | 0.12 | -0.07 |
+| D21 | 05-19 | Hybrid Solver v10 fork | 0.20 | +0.01 |
+| D22 | 05-20 | Hybrid Solver v10 variance re-roll | 0.18 | -0.01 |
+| **D23** | **05-21** | **memoryAgent v6 fork (RTX 6000)** | **PENDING** | — |
+
+---
+
 ## 2026-05-20 — D22: variance re-roll of Hybrid Solver v10 (same kernel, time-based seed)
 
 ### Headline
