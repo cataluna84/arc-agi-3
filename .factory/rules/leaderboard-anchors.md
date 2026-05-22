@@ -30,7 +30,8 @@ and `experiments/exp002_forge_variance_probe/README.md`.
 | D20 | 2026-05-18 | exp004 Qwen Phase-1.5 (richer candidates + 9 geometric fallbacks) | 0.12    | -0.07   |
 | D21 | 2026-05-19 | exp012 Hybrid Solver v10 fork (FORGE v19 + beam + MCTS click masking) | 0.20    | +0.01   |
 | D22 | 2026-05-20 | exp012 Hybrid Solver v10 variance re-roll (time-based seed)            | 0.18    | -0.01   |
-| D23 | 2026-05-21 | exp013 memoryAgent v6 fork (cross-game shared TransitionMemory + click heatmap; RTX 6000) | PENDING | -       |
+| D23 | 2026-05-21 | exp013 memoryAgent v6 fork (cross-game shared TransitionMemory + click heatmap; RTX 6000) | 0.13    | -0.06   |
+| D24 | 2026-05-22 | exp014 Stochastic Goose sample fork (CNN action-change predictor, T4)              | PENDING | -       |
 
 Best to date: D3 (FORGE variance probe s3) at 0.24. The Goose CNN v2
 result (0.17 vs random 0.18) was the moment we pivoted from training

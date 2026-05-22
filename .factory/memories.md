@@ -5,6 +5,99 @@
 
 ---
 
+## 2026-05-22 — D24: forked official Stochastic Goose sample (exp014) after 3 fresh candidates failed inspection
+
+### Headline
+
+- **D23 (memoryAgent v6 fork) result**: LB **0.13**, well below the 0.20-0.32
+  band and barely above the 0.12 trigger-bfs floor. Source family anchor was
+  ~0.28; another fork that didn't reproduce.
+- **D24 candidate hunt** (exa+kaggle search): pulled 3 fresh public notebooks
+  + 2 candidates of last resort. Inspection results:
+  - **Agent-17 (FORGE v19, anchor 0.39)**: identical `forge-pretrained-weights`
+    private-deps trap at line 1288 as Hybrid Solver (exp012) → would
+    under-reproduce to 0.18-0.20. SKIP.
+  - **FORGE v16 fork (anchor ~0.35)**: same trap at line 1130. SKIP.
+  - **Level-by-Level Logic Explanations (anchor 0.33)**: not a solver, just
+    pandas tables. SKIP.
+  - **Resonance Agent v35 (active author)**: **hardcoded dependency chains
+    for all 25 PUBLIC games** (gate (x,y) coords, phase sequences). Explicit
+    public-game overfit per ARC Prize technical report's "task-specific
+    overfitting" caution. SKIP.
+  - **Stochastic Goose sample (anchor 0.25)**: clean, official Kaggle
+    `inversion/arc3-sample-submission-stochastic-goose`. No private-deps
+    trap, no public-game overfit. SUBMITTED for D24.
+- **D24 submission ref 52929745** PENDING at 2026-05-22 16:04 UTC.
+
+### Key insight: the FORGE-family trap
+
+**Three FORGE-v19-derived public notebooks (Hybrid Solver v10, Agent-17, FORGE
+v16 fork) all reference `/kaggle/input/forge-pretrained-weights/pretrained_weights.pt`
+silently with a try/except fallback to random init.** The dataset does NOT
+exist as a public Kaggle dataset. Source authors' public LB scores (0.35-0.39)
+likely came from runs where they had the weights attached as a private dataset
+before publishing the notebook with `dataset_sources: []`. **Every fork
+trying to reproduce these scores will silently under-reproduce by 0.15-0.20**
+because of this single line of code.
+
+This explains why:
+- exp012 (Hybrid Solver v10 fork): 0.20, 0.18 (n=2) vs claimed 0.39 → -0.19 gap
+- exp013 (memoryAgent v6 fork): 0.13 vs anchor 0.28 → -0.15 gap
+- Likely Agent-17 and FORGE v16 fork would behave identically.
+
+### exp014 (Stochastic Goose sample) details
+
+- Architecture: CNN-based action-learning agent from Tufa Labs (Dries Smit,
+  1st place ARC-AGI-3 Agent Preview Competition).
+- 4-layer CNN (32 → 64 → 128 → 256), 16-channel one-hot 64x64 input, action
+  head (ACTION1-5 probabilities) + coordinate head (64x64 conv probabilities
+  for ACTION6).
+- Binary classification: predicts if actions will change the frame.
+- Hash-deduped experience buffer (~200k entries), reset per level.
+- On-the-fly RL training during the 8h eval budget.
+- 17 KB inlined agent (smallest of any fork we've tried).
+
+Inspection:
+- Zero `forge-pretrained-weights` references.
+- Zero hardcoded paths to `/kaggle/input` beyond the standard wheels mount.
+- Zero hardcoded game-specific (x,y) gate data.
+- Same harness wiring (gateway:8001 + cp ARC-AGI-3-Agents + python main.py)
+  as exp008 / exp012 / exp013.
+
+Hardware:
+- Source: `machine_shape: NvidiaTeslaT4`.
+- Our v1 pushed without `--accelerator` → P100 default (per gotcha #16).
+- Re-pushed v2 with `--accelerator NvidiaTeslaT4` to match source.
+- Save-mode v2 COMPLETE in ~30s.
+
+### LB scoreboard (updated)
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D19 | 05-17 | Qwen Phase-1 + Path B | 0.12 | -0.07 |
+| D20 | 05-18 | Qwen Phase-1.5 | 0.12 | -0.07 |
+| D21 | 05-19 | Hybrid Solver v10 fork | 0.20 | +0.01 |
+| D22 | 05-20 | Hybrid Solver v10 variance re-roll | 0.18 | -0.01 |
+| D23 | 05-21 | memoryAgent v6 fork | 0.13 | -0.06 |
+| **D24** | **05-22** | **Stochastic Goose sample fork (T4)** | **PENDING** | — |
+
+### Next (post-D24 LB result)
+
+- **LB ≥ 0.25**: Stochastic Goose strategy works for us; iterate by attaching
+  pretrained CNN weights or tuning the experience-buffer dedup. Possibly use
+  Tufa Labs' 0.69 leader's writeup if it gets published.
+- **LB 0.20-0.24**: between anchor (0.25) and our D3 best (0.24); confirms
+  the CNN approach is viable and roughly matches our best.
+- **LB 0.13-0.19**: same under-reproduction pattern as memoryAgent. The fork
+  strategy continues to plateau; build custom (master_v7 + frame_segmenter +
+  drop random-init CNN) for D25.
+- **LB ≤ 0.12**: structural failure on Kaggle's eval; abandon the official
+  sample as a viable fork; pivot to either Phase 2 Qwen ranker (we have the
+  code) or a fully custom solver.
+
+---
+
 ## 2026-05-21 — D23: pivoted to forking memoryAgent v6 (exp013) on RTX 6000
 
 ### Headline
