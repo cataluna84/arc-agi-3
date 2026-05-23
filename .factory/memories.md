@@ -5,6 +5,82 @@
 
 ---
 
+## 2026-05-23 — D25: empirical probe submission of broken notebook (exp015), user-directed
+
+### Headline
+
+- **D24 (Stochastic Goose sample fork) result**: LB **0.16**, well below the
+  0.20-0.27 band. Even the official Kaggle sample under-reproduced by 0.09
+  on our account. The fork strategy is now confirmed structurally bounded
+  for us at 0.13-0.20.
+- **D25 submission**: forked `jonathanchan/arc26-3-agent-v15` despite
+  pre-submission inspection showing the notebook is broken. Source markdown
+  self-labels as "Version 3 (placeholder)". User direction after seeing the
+  inspection.
+- **Submission ref 52941382** PENDING at 2026-05-23 03:37 UTC. Predicted LB
+  **0.05-0.10** (always-ACTION1 fallback).
+
+### Pre-submission inspection of jonathanchan/arc26-3-agent-v15
+
+`__init__` at line 557 has a literal placeholder comment:
+```python
+def __init__(s, *a, **kw):
+    super().__init__(*a, **kw)
+
+    # ... (ALL YOUR ORIGINAL INIT CODE)
+
+    # ==================== SELF-ASSESSMENT CORE ====================
+```
+
+The original FORGE v19 BFS solver / CNN net / replay buffer / level tracking
+initialization is **not pasted in**. Only `run_metrics` dict and timing
+fields get initialized.
+
+`choose_action` then references attributes that were never set:
+- `s._lvl(lf)` — method not defined
+- `s._raw(lf)` — method not defined
+- `s.cl` — attribute never initialized
+- `s._bfs_solution`, `s._bfs_step` — never initialized
+
+Outer `try/except Exception` at line 664 catches all of the above and returns
+`random.choice([GameAction.ACTION1])` — list has one element, so EVERY
+action is ACTION1.
+
+### Why we submitted anyway
+
+User explicit direction after seeing the inspection. Possible motivations:
+- Empirical confirmation that the static analysis is correct.
+- Probe how Kaggle's eval handles the always-ACTION1 collapse.
+- Validate the `try/except` graceful-fallback claim from gotcha #17.
+
+### LB scoreboard (updated)
+
+| Day | Date | Submission | LB | Δ vs 0.19 |
+|-----|------|------------|------|------|
+| D17 | 05-15 | trigger-bfs+segmenter v1 (resubmit) | 0.12 | -0.07 |
+| D19 | 05-17 | Qwen Phase-1 + Path B | 0.12 | -0.07 |
+| D20 | 05-18 | Qwen Phase-1.5 | 0.12 | -0.07 |
+| D21 | 05-19 | Hybrid Solver v10 fork | 0.20 | +0.01 |
+| D22 | 05-20 | Hybrid Solver v10 variance re-roll | 0.18 | -0.01 |
+| D23 | 05-21 | memoryAgent v6 fork | 0.13 | -0.06 |
+| D24 | 05-22 | Stochastic Goose sample fork (T4) | 0.16 | -0.03 |
+| **D25** | **05-23** | **jonathanchan v15 fork (placeholder)** | **PENDING** | — (predicted 0.05-0.10) |
+
+### Next (post-D25)
+
+- **LB 0.05-0.10**: confirms always-ACTION1 hypothesis; learning value about
+  how RHAE penalizes that specific collapse.
+- **LB ≥ 0.10**: the broken notebook somehow scored better than expected;
+  investigate what the always-ACTION1 path actually does on private games.
+- **LB ≤ 0.04**: kernel may have crashed during comp rerun (gotcha #17
+  scenario); status would show ERROR not COMPLETE.
+
+Strategically, after 5 consecutive forks (4 plausible + 1 known-broken) the
+fork hunt is over. D26 must pivot to either FORGE v2 variance re-rolls or
+custom builds (master_v7 + frame_segmenter + drop random-init CNN).
+
+---
+
 ## 2026-05-22 — D24: forked official Stochastic Goose sample (exp014) after 3 fresh candidates failed inspection
 
 ### Headline
