@@ -38,7 +38,7 @@ Changelog = "https://github.com/cataluna84/arc-agi-3/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.0",
+    "ruff>=0.15.14",
     "pre-commit>=4.0.0",
     "pytest>=8.3.0",
     # numpy is a *test-only* dep here. The runtime numpy comes from the
@@ -46,7 +46,7 @@ dev = [
     # CI doesn't install those wheels, so without an explicit dev pin
     # `tests/test_state_graph.py` and `tests/test_goose_cnn.py` fail to
     # collect with `ModuleNotFoundError: No module named 'numpy'`.
-    "numpy>=2.0.0",
+    "numpy>=2.4.6",
 ]
 
 [build-system]
