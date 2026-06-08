@@ -24,7 +24,7 @@ classifiers = [
 # scripts/install_arc_agi_sdk.py after the download completes.
 dependencies = [
     # KGAT_ API token format requires kaggle CLI >= 1.8.0 and kagglehub >= 0.4.1.
-    "kaggle>=2.1.2",
+    "kaggle>=2.2.1",
     "kagglehub>=0.4.1",
     "python-dotenv>=1.0.0",
 ]
