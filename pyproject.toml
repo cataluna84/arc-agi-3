@@ -25,7 +25,7 @@ classifiers = [
 dependencies = [
     # KGAT_ API token format requires kaggle CLI >= 1.8.0 and kagglehub >= 0.4.1.
     "kaggle>=2.1.2",
-    "kagglehub>=0.4.1",
+    "kagglehub>=1.0.2",
     "python-dotenv>=1.0.0",
 ]
 
