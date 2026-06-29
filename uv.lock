@@ -26,7 +26,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "kaggle", specifier = ">=2.1.2" },
+    { name = "kaggle", specifier = ">=2.2.3" },
     { name = "kagglehub", specifier = ">=0.4.1" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
@@ -272,7 +272,7 @@ wheels = [
 
 [[package]]
 name = "kaggle"
-version = "2.1.2"
+version = "2.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bleach" },
@@ -281,14 +281,15 @@ dependencies = [
     { name = "packaging" },
     { name = "protobuf" },
     { name = "python-dateutil" },
+    { name = "python-dotenv" },
     { name = "python-slugify" },
     { name = "requests" },
     { name = "tqdm" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a3/86/0a8e8459c91577ded8d4baeb258dfa37aaf5168bb0427ae7bf66da53f46b/kaggle-2.1.2.tar.gz", hash = "sha256:492fbfc6d1df958aeaa8e415781996e62db5db734266acf9575eaf5626919fb4", size = 172561, upload-time = "2026-05-06T16:40:53.621Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/97/cf/2e5b5e0710844ce78fbdae4630527f8e2c23c0851c0a215404b8a6c981b0/kaggle-2.2.3.tar.gz", hash = "sha256:ce292c459a13950553d894ee7368d6454be53291bd75c2d27ad2bed149cdd6c4", size = 245527, upload-time = "2026-06-25T19:47:35.894Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/0e/a7dc4eb9171d841b7a9e5be1f9e9e70bd9fce63d3ba5770a6c3c17dc5276/kaggle-2.1.2-py3-none-any.whl", hash = "sha256:c4391459af6a10ca350b183f18c5f0d8748dd242c34397ba8b59510ecefd319e", size = 110195, upload-time = "2026-05-06T16:40:52.168Z" },
+    { url = "https://files.pythonhosted.org/packages/03/46/24e3db0c32cd3e089816bd605ab39fae72a0ae688c677cc9b056789c5f3c/kaggle-2.2.3-py3-none-any.whl", hash = "sha256:535eed6612910979ff3025f9c213207718305d47ab5f263fe74acd735c7e902e", size = 111507, upload-time = "2026-06-25T19:47:34.724Z" },
 ]
 
 [[package]]
@@ -309,15 +310,15 @@ wheels = [
 
 [[package]]
 name = "kagglesdk"
-version = "0.1.23"
+version = "0.1.30"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "protobuf" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/89/7f/80d1910fbb42d59e5845c16affa8496302a3334360e23d70c2adf492b31c/kagglesdk-0.1.23.tar.gz", hash = "sha256:62e89ae21ae29495e7e597d6160f378efcb0c8734a8c10eaf7f7607a60ac1f25", size = 164193, upload-time = "2026-05-01T15:49:16.666Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/3a/522542dbf928ef18144caccb0dfea1da50bc3d1b5309511410d36b316ab9/kagglesdk-0.1.30.tar.gz", hash = "sha256:47c6643066d965b7898e960fddcde07e151bea1ae1c1c381e25a5a041edf881d", size = 181398, upload-time = "2026-06-11T22:51:46.351Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/4e/fead499e4e76f66203611ecee1032fc8da87f2ab59c3921c76b06334cbbf/kagglesdk-0.1.23-py3-none-any.whl", hash = "sha256:8966f7d99f59f2b769681e19a2cf52192b23be053de6875c06e66cd85c4f1dd1", size = 217784, upload-time = "2026-05-01T15:49:15.291Z" },
+    { url = "https://files.pythonhosted.org/packages/60/85/eedcc1c5f3d198d64dcc6f68c30739abb28c180b889099d4e47bb11581ac/kagglesdk-0.1.30-py3-none-any.whl", hash = "sha256:dbd063e1805a5ef947a8c0a6e43b232eb01697f08baf3310bc3dde6dfe5a0193", size = 231016, upload-time = "2026-06-11T22:51:45.089Z" },
 ]
 
 [[package]]
